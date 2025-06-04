@@ -21,9 +21,10 @@ import { urlConstants } from "../../apis";
 import { toast } from "react-toastify";
 import logoImage from "../../images/logo.png";
 import bgImg from "../../images/onboarding.png";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import useGoogleSignIn from "./hooks/use-google-signin.hook";
 import GoogleButton from "./components/google-button";
+import MicrosoftButton from "./components/microsoft-button";
 
 const theme = createTheme({
   palette: {
@@ -38,12 +39,23 @@ const theme = createTheme({
 });
 
 export default function SignIn() {
+
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   const formRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const code = React.useMemo(() => {
+    if (location.hash && location.hash.includes('code=')) {
+      const hash = location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      return params.get('code');
+    }
+    return null;
+  }, [location.hash]);
 
   const { handleGoogleSignIn } = useGoogleSignIn(setLoading);
+  const [microsoftLoading, setMicrosoftLoading] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -59,11 +71,9 @@ export default function SignIn() {
 
       const { user, token } = response.data;
 
-      localStorage.setItem("user", JSON.stringify({ user }));
+      localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("token", token);
-
       dispatch(loginSuccess({ user, token }));
-
       toast.success("Logged in successfully!");
       navigate("/");
     } catch (error) {
@@ -74,8 +84,36 @@ export default function SignIn() {
     }
   };
 
- 
+  // Handle Microsoft OAuth code exchange
+  // React.useEffect(() => {
+  //   const handleMicrosoftLogin = async () => {
+  //     if (!code) return;
+      
+  //     setLoading(true);
+  //     try {
+  //       const response = await axios.post(urlConstants.loginMicrosoft, { code });
+  //       const { user, token } = response.data;
+        
+  //       if (user && token) {
+  //         localStorage.setItem('auth', JSON.stringify({ user, token }));
+  //         dispatch(loginSuccess({ user, token }));
+  //         toast.success('Logged in with Microsoft!');
+  //         navigate('/');
+  //       } else {
+  //         throw new Error('Invalid response from server');
+  //       }
+  //     } catch (error) {
+  //       console.error('Microsoft login failed:', error);
+  //       toast.error('Microsoft login failed. Please try again.');
+  //     } finally {
+  //       setLoading(false);
+  //       // Clean up the URL
+  //       window.history.replaceState(null, '', window.location.pathname);
+  //     }
+  //   };
 
+  //   handleMicrosoftLogin();
+  // }, [code, dispatch, navigate]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -189,6 +227,7 @@ export default function SignIn() {
               </Typography>
 
               <GoogleButton handleGoogleSignIn={handleGoogleSignIn} />
+              <MicrosoftButton loading={microsoftLoading} setLoading={setMicrosoftLoading} />
             </Box>
 
             <Box

@@ -1,54 +1,39 @@
-import { createBrowserRouter, redirect, useNavigate, Navigate } from "react-router-dom";
-import { lazy, useEffect, useState } from "react";
+import {
+  createBrowserRouter,
+  redirect,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
+import { useSelector } from "react-redux";
 import Navbar from "./pages/Navbar";
-import { Outlet } from "react-router-dom";
-import { useSelector, useDispatch } from "react-redux";
-import { logout } from "./features/auth/authSlice";
+
+import Home from "./pages/Home";
+import SignIn from "./pages/Login/Login";
+import SignUp from "./pages/Login/Signup";
 import ForgotPassword from "./pages/Login/forgot-password";
+import ProblemList from "./pages/Problems";
+import Problem from "./pages/Problems";
+import StatementPage from "./pages/StatementPage";
+import Competitions from "./pages/Competitions";
+import Competition from "./pages/Competitions/Competition";
+import CompetitionProblem from "./pages/Competitions/Problems/Statement";
+import Admin from "./pages/Admin";
+import Compiler from "./pages/Compiler";
+import ProfilePage from "./views/profile";
+import Analytics from "./pages/Analytics";
 
-const Home = lazy(() => import("./pages/Home"));
-const SignIn = lazy(() => import("./pages/Login/Login"));
-const SignUp = lazy(() => import("./pages/Login/Signup"));
-const ProblemList = lazy(() => import("./pages/Problems"));
-const Problem = lazy(() => import("./pages/Problems"));
-const StatementPage = lazy(() => import("./pages/StatementPage"));
-const Competitions = lazy(() => import("./pages/Competitions"));
-const Competition = lazy(() => import("./pages/Competitions/Competition"));
-const CompetitionProblem = lazy(() => import("./pages/Competitions/Problems/Statement"));
-const Admin = lazy(() => import("./pages/Admin"));
-const Compiler = lazy(() => import("./pages/Compiler"));
-const ProfilePage = lazy(() => import("./views/profile"));
-const Analytics = lazy(() => import("./pages/Analytics"));
+const checkAuth = () =>
+  !!(localStorage.getItem("user") && localStorage.getItem("token"));
 
-const getUserFromStorage = () => {
-  const user = localStorage.getItem('user');
-  return user ? JSON.parse(user) : null;
-};
+const AppLayout = () => {
+  const { user, loading } = useSelector((state) => state.auth);
+  const isAuth = user || checkAuth();
 
-const PublicLayout = () => {
-  return (
-    <>
-      <Outlet />
-    </>
-  );
-};
-
-const AuthenticatedLayout = () => {
-  const { user: reduxUser } = useSelector((state) => state.auth);
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser && reduxUser) {
-      dispatch(logout());
-      navigate('/signin');
-    }
-  }, [reduxUser, navigate, dispatch]);
+  if (loading) return <div>Loading...</div>;
 
   return (
     <>
-      <Navbar />
+      {isAuth && <Navbar />}
       <Outlet />
     </>
   );
@@ -57,112 +42,100 @@ const AuthenticatedLayout = () => {
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <PublicLayout />,
+    element: <AppLayout />,
     children: [
       {
-        path: "signin",
+        index: true,
         element: <SignIn />,
-        loader: () => {
-          const user = getUserFromStorage();
-          return user ? redirect("/") : null;
-        }
+        loader: () => (checkAuth() ? redirect("/home") : null),
       },
       {
         path: "signup",
         element: <SignUp />,
-        loader: () => {
-          const user = getUserFromStorage();
-          return user ? redirect("/") : null;
-        }
-      },   
+        loader: () => (checkAuth() ? redirect("/home") : null),
+      },
       {
         path: "forgot-password",
         element: <ForgotPassword />,
-        loader: () => {
-          const user = getUserFromStorage();
-          return user ? redirect("/") : null;
-        }
+        loader: () => (checkAuth() ? redirect("/home") : null),
       },
+
       {
-        path: "*",
-        loader: () => {
-          const user = getUserFromStorage();
-          return user ? redirect("/") : null;
-        },
-        element: <Navigate to="/signin" replace />
-      }
-    ]
-  },
-  {
-    path: "/",
-    element: <AuthenticatedLayout />,
-    loader: () => {
-      const user = getUserFromStorage();
-      return !user ? redirect("/signin") : null;
-    },
-    children: [
-      {
-        index: true,
-        element: <Home />
+        path: "home",
+        element: <Home />,
+        loader: () => (!checkAuth() ? redirect("/") : null),
       },
       {
         path: "problems",
         children: [
           {
             index: true,
-            element: <ProblemList />
+            element: <ProblemList />,
+            loader: () => (!checkAuth() ? redirect("/") : null),
           },
           {
             path: "search",
-            element: <Problem />
+            element: <Problem />,
+            loader: () => (!checkAuth() ? redirect("/") : null),
           },
           {
             path: "statement/:id",
-            element: <StatementPage />
-          }
-        ]
+            element: <StatementPage />,
+            loader: () => (!checkAuth() ? redirect("/") : null),
+          },
+        ],
       },
       {
         path: "competitions",
         children: [
           {
             index: true,
-            element: <Competitions />
+            element: <Competitions />,
+            loader: () => (!checkAuth() ? redirect("/") : null),
           },
           {
             path: ":id",
-            element: <Competition />
+            element: <Competition />,
+            loader: () => (!checkAuth() ? redirect("/") : null),
           },
           {
             path: ":c_id/statement/:id",
-            element: <CompetitionProblem />
-          }
-        ]
+            element: <CompetitionProblem />,
+            loader: () => (!checkAuth() ? redirect("/") : null),
+          },
+        ],
       },
       {
         path: "statement/*",
-        element: <CompetitionProblem />
+        element: <CompetitionProblem />,
+        loader: () => (!checkAuth() ? redirect("/") : null),
       },
       {
         path: "admin/*",
-        element: <Admin />
+        element: <Admin />,
+        loader: () => (!checkAuth() ? redirect("/") : null),
       },
       {
         path: "compiler",
-        element: <Compiler />
+        element: <Compiler />,
+        loader: () => (!checkAuth() ? redirect("/") : null),
       },
       {
         path: "profile",
-        element: <ProfilePage />
+        element: <ProfilePage />,
+        loader: () => (!checkAuth() ? redirect("/") : null),
       },
       {
         path: "analytics",
-        element: <Analytics />
+        element: <Analytics />,
+        loader: () => (!checkAuth() ? redirect("/") : null),
       },
+
+      // Fallback route
       {
         path: "*",
-        element: <Navigate to="/" replace />
-      }
-    ]
-  }
+        element: <Navigate to={checkAuth() ? "/home" : "/"} replace />,
+      },
+    ],
+  },
 ]);

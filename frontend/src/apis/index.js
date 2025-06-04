@@ -1,4 +1,5 @@
-const baseUrl = "https://server-thrumming-waterfall-7530.fly.dev/";
+const isDev = process.env.REACT_APP_NODE_ENV === "development";
+const baseUrl = isDev ? "http://localhost:5000/" : "https://server-thrumming-waterfall-7530.fly.dev/";
 
 export const urlConstants = {
   getProblem: baseUrl + "api/problems/id",
@@ -13,6 +14,7 @@ export const urlConstants = {
   runCode: baseUrl + "api/code/run",
   submitCode: baseUrl + "api/code/submit",
   loginUser: baseUrl + "api/auth/login",
+  loginMicrosoft: baseUrl + "api/auth/microsoft",
   registerUser: baseUrl + "api/auth/register",
   getSocialProfile: baseUrl + "api/social-profile/id",
   updateSocialProfile: baseUrl + "api/social-profile/update",

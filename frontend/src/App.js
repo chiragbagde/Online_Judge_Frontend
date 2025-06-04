@@ -1,9 +1,8 @@
-import "./App.css";
 import { useDispatch, useSelector } from "react-redux";
-import { loginSuccess, logout } from "./features/auth/authSlice";
+import { loginSuccess, logout, setLoading } from "./features/auth/authSlice";
 import React, { useEffect } from "react";
 import Loader from "./pages/Loader/Loader";
-import { ToastContainer } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import { urlConstants } from "./apis";
@@ -14,6 +13,10 @@ import { useIsSystemDarkMode, useTheme as useThemeContext } from "./ThemeContext
 import { RouterProvider } from "react-router-dom";
 import { router } from "./router";
 import { Suspense } from "react";
+import { PublicClientApplication } from "@azure/msal-browser";
+import { msalConfig, msalInstance } from "./config/auth";
+import { MsalProvider } from "@azure/msal-react";
+import MicrosoftAuthHandler from "./config/microsoft-handler-auth";
 
 function App() {
   const { isAuthenticated, loading } = useSelector((state) => state.auth);
@@ -23,20 +26,29 @@ function App() {
   const { themePref } = useThemeContext();
 
   const verifyUser = async () => {
-    const user = JSON.parse(localStorage.getItem("user"))?.user;
-    if (user) {
-      try {
-        await axios.post(urlConstants.getProblem, { id: "656612ed7552afc6bcbda006" }, getConfig());
-        dispatch(loginSuccess({ user }));
-      } catch (e) {
-        localStorage.removeItem("user");
-        dispatch(logout());
-      }
-    } else {
-      localStorage.removeItem("user");
-      dispatch(logout());
+    try {
+      dispatch(setLoading(true));
+      const token = localStorage.getItem('token');
+      
+      if (token) {
+        try {
+          await axios.get(urlConstants.verifyToken, getConfig());
+        } catch (error) {
+          console.error('Session verification failed:', error);
+        }
+      } 
+    } catch (error) {
+      console.error('Error during session verification:', error);
+    } finally {
+      dispatch(setLoading(false));
     }
   };
+  
+  useEffect(() => {
+    verifyUser();
+    const intervalId = setInterval(verifyUser, 5 * 60 * 1000);
+    return () => clearInterval(intervalId);
+  }, [dispatch]);  
 
   useEffect(() => {
     verifyUser();
@@ -51,6 +63,8 @@ function App() {
   if (loading) return <Loader />;
 
   return (
+    <MsalProvider instance={msalInstance}>
+    <MicrosoftAuthHandler />
     <Suspense fallback={<Loader />}>
       <RouterProvider router={router} />
       <ToastContainer
@@ -76,6 +90,7 @@ function App() {
         toastClassName="custom-toast"
       />
     </Suspense>
+    </MsalProvider>
   );
 }
 
