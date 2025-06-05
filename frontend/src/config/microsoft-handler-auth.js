@@ -1,17 +1,42 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { loginSuccess } from "../features/auth/authSlice";
 import { msalInstance } from "../config/auth";
 import axios from "axios";
 import { urlConstants } from "../apis";
 import { toast } from "react-toastify";
+import { Box, CircularProgress, Typography } from "@mui/material";
+
+const LoadingOverlay = () => (
+  <Box
+    sx={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1400,
+      color: 'white'
+    }}
+  >
+    <CircularProgress color="inherit" size={60} thickness={4} />
+    <Typography variant="h6" sx={{ mt: 2 }}>Signing in with Microsoft...</Typography>
+  </Box>
+);
 
 export default function MicrosoftAuthHandler() {
   const dispatch = useDispatch();
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
     const handleRedirect = async () => {
       try {
+        setIsLoading(true);
         await msalInstance.initialize();
         const response = await msalInstance.handleRedirectPromise();
 
@@ -45,11 +70,17 @@ export default function MicrosoftAuthHandler() {
       } catch (error) {
         console.error("Microsoft Redirect Login Error:", error);
         toast.error("Microsoft login failed: " + (error.message || "Unknown error"));
+      } finally {
+        setIsLoading(false);
       }
     };
 
     handleRedirect();
   }, [dispatch]);
-
+  
+  if (isLoading) {
+    return <LoadingOverlay />;
+  }
+  
   return null;
 }
