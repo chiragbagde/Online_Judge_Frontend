@@ -307,10 +307,10 @@ export default function Navbar() {
               borderRadius: 2,
               "&:hover": { bgcolor: darkThemeStyles.hoverBackground },
             }}
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/blogs")}
             color="inherit"
           >
-            Home
+            Blog
           </Button>
           <Button
             sx={{

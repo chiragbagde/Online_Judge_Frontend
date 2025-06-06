@@ -21,6 +21,9 @@ import Admin from "./pages/Admin";
 import Compiler from "./pages/Compiler";
 import ProfilePage from "./views/profile";
 import Analytics from "./pages/Analytics";
+import BlogsComponent from "./pages/Blogs";
+import BlogForm from "./pages/Blogs/BlogForm";
+import BlogDetail from "./pages/Blogs/BlogDetail";
 
 const checkAuth = () =>
   !!(localStorage.getItem("user") && localStorage.getItem("token"));
@@ -109,6 +112,31 @@ export const router = createBrowserRouter([
         path: "statement/*",
         element: <CompetitionProblem />,
         loader: () => (!checkAuth() ? redirect("/") : null),
+      },
+      {
+        path: "blogs",
+        children: [
+          {
+            index: true,
+            element: <BlogsComponent />,
+            loader: () => (checkAuth() ? null : redirect("/")),
+          },
+          {
+            path: "new",
+            element: <BlogForm />,
+            loader: () => (checkAuth() ? null : redirect("/")),
+          },
+          {
+            path: ":slug",
+            element: <BlogDetail />,
+            loader: () => checkAuth() || redirect("/signin")
+          },
+          {
+            path: "edit/:id/:slug",
+            element: <BlogForm editMode={true} />,
+            loader: () => checkAuth() || redirect("/signin")
+          }
+        ]
       },
       {
         path: "admin/*",
