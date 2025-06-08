@@ -3,8 +3,11 @@ import {
   redirect,
   Navigate,
   Outlet,
+  useLocation,
+  useNavigationType
 } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { useEffect } from "react";
 import Navbar from "./pages/Navbar";
 
 import Home from "./pages/Home";
@@ -24,9 +27,30 @@ import Analytics from "./pages/Analytics";
 import BlogsComponent from "./pages/Blogs";
 import BlogForm from "./pages/Blogs/BlogForm";
 import BlogDetail from "./pages/Blogs/BlogDetail";
+import LearningJourneys from "./pages/LearningJourneys";
+import Community from "./pages/Community";
+import LessonContent from './pages/LearningJourneys/LessonContent';
+import ModuleContent from './pages/LearningJourneys/ModuleContent';
 
 const checkAuth = () =>
   !!(localStorage.getItem("user") && localStorage.getItem("token"));
+
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  const navType = useNavigationType();
+
+  useEffect(() => {
+    // Only scroll to top on route changes that aren't popstate (back/forward)
+    if (navType !== 'POP') {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+  }, [pathname, navType]);
+
+  return null;
+};
 
 const AppLayout = () => {
   const { user, loading } = useSelector((state) => state.auth);
@@ -37,6 +61,7 @@ const AppLayout = () => {
   return (
     <>
       {isAuth && <Navbar />}
+      <ScrollToTop />
       <Outlet />
     </>
   );
@@ -156,6 +181,32 @@ export const router = createBrowserRouter([
       {
         path: "analytics",
         element: <Analytics />,
+        loader: () => (!checkAuth() ? redirect("/") : null),
+      },
+      {
+        path: "learning-journeys",
+        children: [
+          {
+            index: true,
+            element: <LearningJourneys />
+          },
+          {
+            path: ':pathId',
+            element: <LearningJourneys />
+          },
+          {
+            path: ':pathId/modules/:moduleId',
+            element: <ModuleContent />
+          },
+          {
+            path: ':pathId/modules/:moduleId/lessons/:lessonId',
+            element: <LessonContent />
+          }
+        ],
+      },
+      {
+        path: "community",
+        element: <Community />,
         loader: () => (!checkAuth() ? redirect("/") : null),
       },
 

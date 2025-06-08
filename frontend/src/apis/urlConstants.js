@@ -22,6 +22,7 @@ export const urlConstants = {
   submit: `${API_BASE_URL}/code/submit`,
   run: `${API_BASE_URL}/code/run`,
   submissions: `${API_BASE_URL}/code/submissions`,
+  getDailyProblem: `${API_BASE_URL}/problems/daily-problem`,
   
   // Test Cases
   testCases: `${API_BASE_URL}/testcases`,
@@ -44,6 +45,9 @@ export const urlConstants = {
   // Blogs
   blogs: `${API_BASE_URL}/blogs`,
   blogsBySlug: `${API_BASE_URL}/blogs/slug`,
+  
+  // Learning Paths
+  learningPaths: `${API_BASE_URL}/learning-paths`,
 };
 
 export default urlConstants;

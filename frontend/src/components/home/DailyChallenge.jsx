@@ -23,7 +23,7 @@ const difficultyColors = {
   Hard: 'error'
 };
 
-const DailyChallenge = ({ challenge }) => {
+const DailyChallenge = ({ dailyProblem, loading }) => {
   const theme = useTheme();
   const [timeLeft, setTimeLeft] = useState({
     hours: '00',
@@ -64,6 +64,10 @@ const DailyChallenge = ({ challenge }) => {
     return () => clearInterval(timer);
   }, []);
 
+  if (!dailyProblem || loading) {
+    return <LinearProgress />;
+  }
+
   return (
     <Card 
       elevation={0}
@@ -71,8 +75,6 @@ const DailyChallenge = ({ challenge }) => {
         background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.03)} 0%, ${alpha(theme.palette.secondary.main, 0.03)} 100%)`,
         border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
         borderRadius: 3,
-        overflow: 'hidden',
-        height: '100%',
         display: 'flex',
         flexDirection: 'column',
         transition: 'all 0.3s ease',
@@ -101,31 +103,29 @@ const DailyChallenge = ({ challenge }) => {
               Daily Challenge
             </Typography>
             <Typography variant="h5" component="h3" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-              {mockChallenge.title}
+              {dailyProblem.statement}
             </Typography>
           </Box>
         </Box>
         
         <Box sx={{ mb: 3, mt: 1 }}>
           <Chip 
-            label={mockChallenge.difficulty} 
+            label={dailyProblem.difficulty} 
             size="small" 
-            color={difficultyColors[mockChallenge.difficulty] || 'default'}
             sx={{ mr: 1, mb: 1, fontWeight: 600 }}
           />
-          {mockChallenge.tags.map((tag, index) => (
             <Chip 
-              key={index}
-              label={tag} 
+              label={dailyProblem.topic} 
               size="small" 
               variant="outlined"
               sx={{ mr: 1, mb: 1, color: 'text.secondary' }}
             />
-          ))}
         </Box>
         
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3, flex: 1 }}>
-          {mockChallenge.description}
+          {dailyProblem.description.map((item, index) => (
+            <p key={index}>{item}</p>
+          ))}
         </Typography>
         
         <Box sx={{ mb: 3 }}>
@@ -164,7 +164,7 @@ const DailyChallenge = ({ challenge }) => {
           </Box>
           <Button
             component={Link}
-            to="/daily-challenge"
+            to={`/problems/statement/${dailyProblem.id}`}
             variant="contained"
             color="primary"
             endIcon={<ArrowForward />}
