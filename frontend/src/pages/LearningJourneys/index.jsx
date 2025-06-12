@@ -163,24 +163,17 @@ const LearningPathCard = ({ path, onViewDetails, onBookmarkToggle }) => {
             alignItems: 'center',
             justifyContent: 'center',
             mb: 3,
-            background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.main} 100%)`,
-            color: theme.palette.primary.main,
           }}
         >
-          {path.icon || <SchoolIcon sx={{ fontSize: 32 }} />}
+          <CardMedia
+            component="img"
+            image={"https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg"}
+            alt={path.title}
+            sx={{ width: 60, height: 60, borderRadius: '50%' }}
+          />
         </Box>
         
         <Box sx={{ mb: 2 }}>
-          <Chip 
-            label={path.level} 
-            size="small" 
-            sx={{ 
-              mb: 2,
-              bgcolor: theme.palette.primary.main,
-              color: theme.palette.primary.main,
-              fontWeight: 600,
-            }}
-          />
           <Typography 
             variant="h5" 
             component="h3" 
@@ -190,7 +183,7 @@ const LearningPathCard = ({ path, onViewDetails, onBookmarkToggle }) => {
               color: 'text.primary',
             }}
           >
-            {path.title}
+          {path.title}
           </Typography>
           <Typography 
             variant="subtitle1" 

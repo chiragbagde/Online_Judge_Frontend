@@ -1,76 +1,69 @@
-import dsaPath from './learningPaths/dsa.json';
-import fullstackPath from './learningPaths/fullstack.json';
-import mlPath from './learningPaths/ml.json';
+const dsaPath = 'https://95689b0f.public-json-worker.pages.dev/dsa.json';
+const fullstackPath = 'https://95689b0f.public-json-worker.pages.dev/fullstack.json';
+const mlPath = 'https://95689b0f.public-json-worker.pages.dev/ml.json';
 
-// Simulate network delay
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Mock API object
+const fetchJson = async (url) => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch ${url}`);
+  return res.json();
+};
+
+// Mock API
 const mockApi = {
-  // Fetch all learning paths
   async fetchLearningPaths() {
     console.log('Fetching learning paths...');
-    await delay(1000); // Simulate network delay
-    
-    const paths = [dsaPath, fullstackPath, mlPath];
-    
+    await delay(1000);
+    const paths = await Promise.all([fetchJson(dsaPath), fetchJson(fullstackPath), fetchJson(mlPath)]);
     return paths;
   },
 
-  // Fetch a single learning path by ID
   async fetchLearningPathById(pathId) {
     console.log('Fetching learning path:', pathId);
-    await delay(800); // Simulate network delay
-    
-    const path = [dsaPath, fullstackPath, mlPath].find(p => p.id === pathId);
-    console.log('Found learning path:', path);
-    
+    await delay(800);
+
+    const paths = await Promise.all([fetchJson(dsaPath), fetchJson(fullstackPath), fetchJson(mlPath)]);
+    const path = paths.find(p => p.id === pathId);
+
     if (!path) {
       throw new Error('Learning path not found');
     }
-    
+
     return path;
   },
 
-  // Toggle bookmark status for a learning path
   async toggleBookmark(pathId) {
     console.log('Toggling bookmark for path:', pathId);
-    await delay(500); // Simulate network delay
-    
-    const path = [dsaPath, fullstackPath, mlPath].find(p => p.id === pathId);
+    await delay(500);
+
+    const paths = await Promise.all([fetchJson(dsaPath), fetchJson(fullstackPath), fetchJson(mlPath)]);
+    const path = paths.find(p => p.id === pathId);
+
     if (!path) {
       throw new Error('Learning path not found');
     }
-    
-    // In a real API, this would update the server
-    // For mock purposes, we'll just return success
+
+    // Pretend toggle logic
     return { success: true, message: 'Bookmark status updated' };
   },
 
-  // Mark a lesson as completed
   async markLessonCompleted(pathId, moduleId, lessonId) {
     console.log('Marking lesson as completed:', { pathId, moduleId, lessonId });
-    await delay(500); // Simulate network delay
-    
-    const path = [dsaPath, fullstackPath, mlPath].find(p => p.id === pathId);
-    if (!path) {
-      throw new Error('Learning path not found');
-    }
-    
+    await delay(500);
+
+    const paths = await Promise.all([fetchJson(dsaPath), fetchJson(fullstackPath), fetchJson(mlPath)]);
+    const path = paths.find(p => p.id === pathId);
+    if (!path) throw new Error('Learning path not found');
+
     const module = path.modules.find(m => m.id === moduleId);
-    if (!module) {
-      throw new Error('Module not found');
-    }
-    
+    if (!module) throw new Error('Module not found');
+
     const lesson = module.lessons.find(l => l.id === lessonId);
-    if (!lesson) {
-      throw new Error('Lesson not found');
-    }
-    
-    // In a real API, this would update the server
-    // For mock purposes, we'll just return success
+    if (!lesson) throw new Error('Lesson not found');
+
     return { success: true, message: 'Lesson marked as completed' };
   }
 };
 
-export default mockApi; 
+export default mockApi;
