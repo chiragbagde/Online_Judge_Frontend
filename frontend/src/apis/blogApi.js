@@ -5,7 +5,8 @@ import { urlConstants } from './index';
 export const getBlogs = async ({page = 1, limit = 10, search = '', filter = ''}) => {
   try {
     const response = await axios.get(
-      `${urlConstants.blogs}?page=${page}&limit=${limit}`
+      `${urlConstants.blogs}?page=${page}&limit=${limit}`,
+      getConfig()
     );
     return response.data;
   } catch (error) {
@@ -16,7 +17,7 @@ export const getBlogs = async ({page = 1, limit = 10, search = '', filter = ''})
 
 export const getBlogBySlug = async (slug) => {
   try {
-    const response = await axios.get(`${urlConstants.blogsBySlug}/${slug}`);
+    const response = await axios.get(`${urlConstants.blogsBySlug}/${slug}`, getConfig());
     return response.data;
   } catch (error) {
     console.error('Error fetching blog:', error);
