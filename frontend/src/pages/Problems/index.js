@@ -54,7 +54,7 @@ import { getConfig } from "../../utils/getConfig";
 import { PROBLEMS_PER_PAGE } from "../../utils/constants";
 import { urlConstants } from "../../apis";
 import Loading from "../Loader/Loader";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import LeftSidebar from "./components/LeftSidebar";
@@ -77,6 +77,7 @@ const sidebarLists = [
 
 
 const Problems = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [problems, setProblems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [topicCounts, setTopicCounts] = useState([]);
@@ -84,7 +85,7 @@ const Problems = () => {
     page: 0,
     pageSize: PROBLEMS_PER_PAGE,
   });
-  const [selectedTopic, setSelectedTopic] = useState(null);
+  const selectedTopic = searchParams.get('category') || null;
   const [search, setSearch] = useState("");
   const [myLists, setMyLists] = useState([]);
   const { user } = useSelector((state) => state.auth);
@@ -145,6 +146,15 @@ const Problems = () => {
     getTopicCounts();
     getMyLists();
   }, []);
+
+  const setSelectedTopic = (topic) => {
+    if (topic === "All Topics" || !topic) {
+      searchParams.delete('category');
+    } else {
+      searchParams.set('category', topic);
+    }
+    setSearchParams(searchParams);
+  };
 
   const filteredProblems = problems.filter(
     (p) =>

@@ -26,6 +26,10 @@ const ProblemsTable = ({
 }) => {
   const navigate = useNavigate();
 
+  const handleTopicClick = (topic) => {
+    setSelectedTopic(topic === "All Topics" ? null : topic);
+  };
+
   return <Box sx={{ width: "100%", maxWidth: 950, mx: "auto" }}>
     {/* Topic Chips */}
     {console.log("selectedTopic", selectedTopic, topicCounts)}
@@ -42,14 +46,14 @@ const ProblemsTable = ({
       <Chip
         label="All Topics"
         color={!selectedTopic ? "primary" : "default"}
-        onClick={() => setSelectedTopic("All Topics")}
+        onClick={() => handleTopicClick("All Topics")}
         sx={{
           fontWeight: 700,
           fontSize: 15,
           px: 2,
           height: 36,
           bgcolor:
-            selectedTopic === "All Topics" ? "border.secondary" : "border.primary",
+            !selectedTopic ? "border.secondary" : "border.primary",
           border: "none",
           boxShadow: "none",
         }}
@@ -59,7 +63,7 @@ const ProblemsTable = ({
           key={topic._id}
           label={`${topic._id} (${topic.count})`}
           color={selectedTopic === topic._id ? "primary" : "default"}
-          onClick={() => setSelectedTopic(topic._id)}
+          onClick={() => handleTopicClick(topic._id)}
           sx={{
             fontWeight: 700,
             fontSize: 15,

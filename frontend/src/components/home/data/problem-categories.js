@@ -1,0 +1,47 @@
+export const categoryConfig = {
+    'arrays': {
+        title: 'Arrays',
+        icon: <DataArray sx={{ fontSize: 32 }} />,
+        color: '#7b5cff'
+    },
+    'strings': {
+        title: 'Strings',
+        icon: <Code sx={{ fontSize: 32 }} />,
+        color: '#00e0d3'
+    },
+    'trees': {
+        title: 'Trees',
+        icon: <AccountTree sx={{ fontSize: 32 }} />,
+        color: '#ff6b6b'
+    },
+    'recursion': {
+        title: 'Recursion',
+        icon: <Sort sx={{ fontSize: 32 }} />,
+        color: '#4dabf7'
+    },
+    'dynamic programming': {
+        title: 'Dynamic Programming',
+        icon: <Functions sx={{ fontSize: 32 }} />,
+        color: '#ffd43b'
+    },
+    'graphs': {
+        title: 'Graphs',
+        icon: <Share sx={{ fontSize: 32 }} />,
+        color: '#d4ff3b'
+    },
+    'linked list': {
+        title: 'Linked List',
+        icon: <Share sx={{ fontSize: 32 }} />,
+        color: '#ffd43b'
+    },
+    'bit manipulation': {
+        title: 'Bit Manipulation',
+        icon: <Search sx={{ fontSize: 32 }} />,
+        color: '#ff6b6b'
+    },
+    'binary search': {
+        title: 'Binary Search',
+        icon: <Search sx={{ fontSize: 32 }} />,
+        color: '#4dabf7'
+    }
+}
