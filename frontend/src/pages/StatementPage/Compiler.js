@@ -165,19 +165,38 @@ const Compiler = ({
 
       {/* Editor */}
       <Box sx={{ flex: 1, p: 2, borderBottom: `1px solid ${borderColor}` }}>
-        <Editor
-          value={code}
-          height="100%"
-          language={lang}
-          defaultValue={CODE_SNIPPETS[lang]}
-          onChange={(v) => setCode(v)}
-          theme={isLightMode ? "vs-light" : "vs-dark"}
-          options={{
-            minimap: { enabled: false },
-            fontSize: 16,
-            automaticLayout: true,
-          }}
-        />
+      <Editor
+  language={lang}
+  value={code}
+  onChange={setCode}
+  theme={isLightMode ? "vs-light" : "vs-dark"}
+  options={{ automaticLayout: true, minimap: { enabled: false } }}
+  beforeMount={() => {
+    // set up the global env for all workers
+    window.MonacoEnvironment = {
+      getWorkerUrl: (_moduleId, label) => {
+        const base = "https://unpkg.com/monaco-editor@0.34.1/min/vs";
+        switch (label) {
+          case "json":
+            return `${base}/language/json/json.worker.js`;
+          case "css":
+          case "scss":
+          case "less":
+            return `${base}/language/css/css.worker.js`;
+          case "html":
+          case "razor":
+            return `${base}/language/html/html.worker.js`;
+          case "typescript":
+          case "javascript":
+            return `${base}/language/typescript/ts.worker.js`;
+          default:
+            return `${base}/editor/editor.worker.js`;
+        }
+      }
+    };
+  }}
+/>
+
       </Box>
 
       {/* Console / Testcase */}

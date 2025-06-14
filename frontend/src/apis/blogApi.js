@@ -1,11 +1,11 @@
 import axios from 'axios';
 import { getConfig } from '../utils/getConfig';
-import { urlConstants } from './urlConstants';
+import { urlConstants } from './index';
 
 export const getBlogs = async ({page = 1, limit = 10, search = '', filter = ''}) => {
   try {
     const response = await axios.get(
-      `${urlConstants .blogs}?page=${page}&limit=${limit}`
+      `${urlConstants.blogs}?page=${page}&limit=${limit}`
     );
     return response.data;
   } catch (error) {

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { urlConstants } from './urlConstants';
+import { urlConstants } from './index';
 import { getConfig } from '../utils/getConfig';
 
 export const getLearningPaths = async () => {

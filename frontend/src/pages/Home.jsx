@@ -27,7 +27,7 @@ import DailyChallenge from '../components/home/DailyChallenge';
 import ProblemCategories from '../components/home/ProblemCategories';
 import LearningPaths from '../components/home/LearningPaths';
 import axios from 'axios';
-import urlConstants from '../apis/urlConstants';
+import { urlConstants } from '../apis';
 import { getConfig } from '../utils/getConfig';
 
 const accent = "#7b5cff";
