@@ -26,26 +26,9 @@ function App() {
   const { themePref } = useThemeContext();
 
   const verifyUser = async () => {
-    try {
-      dispatch(setLoading(true));
-      const token = localStorage.getItem('token');
-      
-      if (token) {
-        try {
-          await axios.get(urlConstants.verifyToken, getConfig());
-        } catch (error) {
-          console.error('Session verification failed:', error);
-        }
-      } 
-    } catch (error) {
-      console.error('Error during session verification:', error);
-    } finally {
-      dispatch(setLoading(false));
-    }
   };
   
   useEffect(() => {
-    verifyUser();
     const intervalId = setInterval(verifyUser, 5 * 60 * 1000);
     return () => clearInterval(intervalId);
   }, [dispatch]);  
