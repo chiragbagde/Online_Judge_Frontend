@@ -1,3 +1,15 @@
+import { 
+    DataArray,
+    Code,
+    AccountTree,
+    Sort,
+    Functions,
+    Hub,
+    LinearScale,
+    Memory,
+    FindInPage
+} from '@mui/icons-material';
+
 export const categoryConfig = {
     'arrays': {
         title: 'Arrays',
@@ -26,22 +38,22 @@ export const categoryConfig = {
     },
     'graphs': {
         title: 'Graphs',
-        icon: <Share sx={{ fontSize: 32 }} />,
+        icon: <Hub sx={{ fontSize: 32 }} />,
         color: '#d4ff3b'
     },
     'linked list': {
         title: 'Linked List',
-        icon: <Share sx={{ fontSize: 32 }} />,
+        icon: <LinearScale sx={{ fontSize: 32 }} />,
         color: '#ffd43b'
     },
     'bit manipulation': {
         title: 'Bit Manipulation',
-        icon: <Search sx={{ fontSize: 32 }} />,
+        icon: <Memory sx={{ fontSize: 32 }} />,
         color: '#ff6b6b'
     },
     'binary search': {
         title: 'Binary Search',
-        icon: <Search sx={{ fontSize: 32 }} />,
+        icon: <FindInPage sx={{ fontSize: 32 }} />,
         color: '#4dabf7'
     }
 }
