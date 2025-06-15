@@ -27,7 +27,6 @@ const Edit = ({
   });
 
   const handleUpdateCompetition = async () => {
-    console.log(updatedCompetitionData);
     try {
       await axios.post(
         urlConstants.updateCompetition,
@@ -49,7 +48,7 @@ const Edit = ({
       setOpenEditDialog(false);
       toast.success("Competition updated successfully!");
     } catch (e) {
-      console.log(e.message);
+      console.error(e.message);
     }
   };
 

@@ -18,6 +18,7 @@ const lightPalette = {
   },
   background: {
     main: "#fff",
+    main2: "rgba(255,255,255,0.1)",
   },
 };
 
@@ -39,7 +40,8 @@ const darkPalette = {
   },
   background: {
     main: "#161B22",
-  },
+    main2: "rgba(0,0,0,0.05)",
+  },  
 };
 
 export function setUpTheme(mode) {

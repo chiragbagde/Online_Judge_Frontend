@@ -36,7 +36,7 @@ const Delete = ({
       setOpenDeleteDialog(false);
       toast.success("Competition deleted successfully!");
     } catch (e) {
-      console.log(e.message);
+      console.error(e.message);
       toast.error("Error in deleting the competition.");
     }
   };

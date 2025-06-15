@@ -78,7 +78,7 @@ const BlogPostCard = ({ blog }) => {
                 label={tag} 
                 size="small" 
                 sx={{ 
-                  bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                  bgcolor: "palette.chipBackground.main",
                   color: 'text.secondary',
                   fontSize: '0.7rem',
                 }} 
@@ -179,7 +179,6 @@ const HomePage = () => {
       try {
         setLoading(true);
         const {data} = await axios.get(`${urlConstants.getDailyProblem}`, getConfig());
-        console.log(data.dailyProblem);
         setDailyProblem(data.dailyProblem || []);
       } catch (error) {
         console.error('Error fetching daily problem:', error);

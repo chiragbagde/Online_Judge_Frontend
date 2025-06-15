@@ -31,8 +31,6 @@ const ProblemsTable = ({
   };
 
   return <Box sx={{ width: "100%", maxWidth: 950, mx: "auto" }}>
-    {/* Topic Chips */}
-    {console.log("selectedTopic", selectedTopic, topicCounts)}
     <Box
       sx={{
         display: "flex",

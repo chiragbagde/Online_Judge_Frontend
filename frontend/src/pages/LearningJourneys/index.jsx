@@ -71,7 +71,7 @@ const StyledTabs = styled(Tabs)({
 const StyledTab = styled(Tab)(({ theme }) => ({
   textTransform: 'none',
   fontWeight: 500,
-  fontSize: '0.9rem',
+  fontSize: '1.5rem',
   minHeight: 48,
   '&.Mui-selected': {
     color: theme.palette.primary.main,
@@ -429,7 +429,7 @@ const LearningPathDetail = ({ path, onBack, onBookmarkToggle }) => {
             <Typography variant="h6" gutterBottom>
               Course Content
             </Typography>
-            <List sx={{ bgcolor: 'background.paper' }}>
+            <List>
               {path.modules.map((module, moduleIndex) => (
                 <Accordion 
                   key={module.id} 
@@ -437,7 +437,8 @@ const LearningPathDetail = ({ path, onBack, onBookmarkToggle }) => {
                   expanded={expandedModule === module.id}
                   onChange={() => handleModuleClick(module.id)}
                   sx={{ 
-                    border: '1px solid', 
+                    border: '1px solid',
+                    bgcolor: 'transparent',
                     borderColor: 'divider',
                     '&:not(:last-child)': {
                       mb: 1,
@@ -450,7 +451,7 @@ const LearningPathDetail = ({ path, onBack, onBookmarkToggle }) => {
                   <AccordionSummary 
                     expandIcon={<ExpandMoreIcon />}
                     sx={{
-                      bgcolor: expandedModule === module.id ? 'action.hover' : 'background.paper',
+                      bgcolor: 'transparent',
                       '&:hover': {
                         bgcolor: 'action.hover',
                       },
@@ -492,6 +493,7 @@ const LearningPathDetail = ({ path, onBack, onBookmarkToggle }) => {
                           sx={{ 
                             pl: 4,
                             borderTop: '1px solid', 
+                            borderRadius: 2,
                             borderColor: 'divider',
                             '&:hover': { 
                               bgcolor: 'action.hover',
@@ -677,12 +679,9 @@ const LearningJourneys = () => {
     setLoading(true);
     try {
       const response = await mockApi.fetchLearningPaths();
-      console.log('API Response:', response);
       const formattedPaths = response.data.map(formatLearningPath);
-      console.log('Formatted Paths:', formattedPaths);
       setLearningPaths(formattedPaths);
-      
-      // If pathId is present in URL, select that path
+
       if (pathId) {
         const selectedPath = formattedPaths.find(p => p.id === pathId);
         if (selectedPath) {

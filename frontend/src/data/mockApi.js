@@ -13,14 +13,12 @@ const fetchJson = async (url) => {
 // Mock API
 const mockApi = {
   async fetchLearningPaths() {
-    console.log('Fetching learning paths...');
     await delay(1000);
     const paths = await Promise.all([fetchJson(dsaPath), fetchJson(fullstackPath), fetchJson(mlPath)]);
     return paths;
   },
 
   async fetchLearningPathById(pathId) {
-    console.log('Fetching learning path:', pathId);
     await delay(800);
 
     const paths = await Promise.all([fetchJson(dsaPath), fetchJson(fullstackPath), fetchJson(mlPath)]);
@@ -34,7 +32,6 @@ const mockApi = {
   },
 
   async toggleBookmark(pathId) {
-    console.log('Toggling bookmark for path:', pathId);
     await delay(500);
 
     const paths = await Promise.all([fetchJson(dsaPath), fetchJson(fullstackPath), fetchJson(mlPath)]);
@@ -49,7 +46,6 @@ const mockApi = {
   },
 
   async markLessonCompleted(pathId, moduleId, lessonId) {
-    console.log('Marking lesson as completed:', { pathId, moduleId, lessonId });
     await delay(500);
 
     const paths = await Promise.all([fetchJson(dsaPath), fetchJson(fullstackPath), fetchJson(mlPath)]);

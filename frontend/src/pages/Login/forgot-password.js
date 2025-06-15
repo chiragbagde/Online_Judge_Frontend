@@ -78,7 +78,6 @@ export default function ForgotPassword() {
         email,
         password,
       });
-      console.log(res);
       
       localStorage.setItem("user", JSON.stringify({ user: res.data.user }));
       localStorage.setItem("token", res.data.token);

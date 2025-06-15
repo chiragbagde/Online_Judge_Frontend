@@ -34,7 +34,7 @@ const Delete = ({
       setOpenDeleteDialog(false);
       toast.success("Problem deleted successfully!");
     } catch (e) {
-      console.log(e.message);
+      console.error(e.message);
       toast.error("Error in deleting the problem.");
     }
   };

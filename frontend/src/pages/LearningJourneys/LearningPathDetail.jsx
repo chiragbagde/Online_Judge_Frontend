@@ -272,7 +272,6 @@ const LearningPathDetail = ({ path, onBack, onBookmarkToggle }) => {
                 display: 'block',
               }
             }}>
-              {console.log("path.image",path.image)}
               <img 
                 src={path.image || '/images/learning-path-placeholder.jpg'} 
                 alt={path.title} 

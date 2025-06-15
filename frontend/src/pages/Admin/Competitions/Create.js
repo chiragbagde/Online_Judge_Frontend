@@ -106,7 +106,7 @@ const Create = ({
         users: [],
       });
     } catch (e) {
-      console.log(e.message);
+      console.error(e.message);
     }
   };
 
@@ -118,7 +118,7 @@ const Create = ({
       );
       setProblems(data.problems);
     } catch (e) {
-      console.log(e.message);
+      console.error(e.message);
     }
   };
 
@@ -130,7 +130,7 @@ const Create = ({
       );
       setUsers(data.users);
     } catch (e) {
-      console.log(e.message);
+      console.error(e.message);
     }
   };
 

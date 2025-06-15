@@ -4,11 +4,8 @@ import { getConfig } from '../utils/getConfig';
 
 export const getLearningPaths = async () => {
   try {
-    console.log('Fetching learning paths from:', urlConstants.learningPaths);
     const config = getConfig();
-    console.log('Request config:', config);
     const response = await axios.get(urlConstants.learningPaths, config);
-    console.log('Learning paths response:', response);
     return response.data;
   } catch (error) {
     console.error('Error fetching learning paths:', {

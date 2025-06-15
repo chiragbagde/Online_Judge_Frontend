@@ -49,22 +49,6 @@ const ProblemCategories = () => {
       <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 3, md: 4 } }}>
         <Box sx={{ textAlign: 'center', mb: 6 }}>
           <Typography 
-            variant="overline" 
-            sx={{ 
-              color: 'primary.main',
-              fontWeight: 600,
-              letterSpacing: 1,
-              mb: 2,
-              display: 'inline-block',
-              px: 2,
-              py: 1,
-              bgcolor: alpha(theme.palette.primary.main, 0.1),
-              borderRadius: 4,
-            }}
-          >
-            Problem Categories
-          </Typography>
-          <Typography 
             variant="h3" 
             sx={{ 
               fontWeight: 800,

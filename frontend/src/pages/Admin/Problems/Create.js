@@ -41,13 +41,12 @@ const Create = ({ openCreateDialog, setOpenCreateDialog, setProblemsData }) => {
         getConfig()
       );
       const problem = data.newprob;
-      console.log(problem);
       setProblemsData((prev) => [...prev, problem]);
       setOpenCreateDialog(false);
       toast.success("Problem created successfully!");
       setNewProblem({});
     } catch (e) {
-      console.log(e.message);
+      console.error(e.message);
     }
   };
 

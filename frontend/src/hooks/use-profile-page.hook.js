@@ -97,7 +97,6 @@ export function useProfilePage() {
   const deleteProfileImage = async (u_id) => {
     try {
       const res = await axios.delete(`${urlConstants.deleteSocialImage}/${u_id}`, getConfig());
-      console.log(res.data);
       toast.success("File deleted successflly!")
       dispatch(setAvatar(null));
     }catch(e){

@@ -46,6 +46,7 @@ const BlogForm = ({ editMode = false }) => {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
   const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   
   // Load blog data in edit mode
   useEffect(() => {
@@ -248,7 +249,7 @@ const BlogForm = ({ editMode = false }) => {
                     onChange={handleMarkdownChange}
                     height={500}
                     placeholder="Write your blog content in Markdown format..."
-                    data-color-mode="light"
+                    data-color-mode={isDark ? "dark" : "light"}
                   />
                 </Box>
                 {errors.content && (

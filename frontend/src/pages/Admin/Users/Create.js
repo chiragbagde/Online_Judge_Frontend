@@ -41,7 +41,7 @@ const Create = ({ openCreateDialog, setOpenCreateDialog, setUsersData }) => {
       setOpenCreateDialog(false);
       toast.success("User created successfully!");
     } catch (e) {
-      console.log(e.message);
+      console.error(e.message);
     }
   };
 

@@ -29,6 +29,7 @@ const StyledCard = styled(Card)(({ theme }) => ({
   height: '100%',
   display: 'flex',
   flexDirection: 'column',
+  cursor: 'pointer',
   transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
   '&:hover': {
     transform: 'translateY(-4px)',
@@ -89,8 +90,6 @@ const LearningPaths = () => {
   const handleBookmarkClick = async (e, pathId, isBookmarked) => {
     e.stopPropagation();
     try {
-      // In a real app, this would call an API to update the bookmark status
-      console.log(`Toggling bookmark for path ${pathId}`);
     } catch (err) {
       console.error('Error toggling bookmark:', err);
     }
@@ -208,7 +207,7 @@ const LearningPaths = () => {
                       sx={{
                         height: 8,
                         borderRadius: 4,
-                        bgcolor: 'grey.200',
+                        bgcolor: 'palette.background.main2',
                         '& .MuiLinearProgress-bar': {
                           borderRadius: 4,
                         },
@@ -223,10 +222,7 @@ const LearningPaths = () => {
                         label={tag}
                         size="small"
                         sx={{
-                          bgcolor: 'grey.100',
-                          '&:hover': {
-                            bgcolor: 'grey.200',
-                          },
+                          bgcolor: 'palette.background.main2',
                         }}
                       />
                     ))}

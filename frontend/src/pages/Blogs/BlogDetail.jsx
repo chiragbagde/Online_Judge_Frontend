@@ -172,7 +172,6 @@ const BlogDetail = () => {
   }
 
   const isAuthor = user && (user._id === blog.author || user.role === 'admin');
-  console.log("isAuthor", isAuthor, user, blog.author);
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>

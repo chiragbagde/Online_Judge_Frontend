@@ -14,7 +14,6 @@ const ProfileHeader = ({
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const {user: userPr} = useSelector(state => state.auth);
-  console.log(userPr);
   
 
   const gradient = isDark

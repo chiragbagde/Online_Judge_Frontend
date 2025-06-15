@@ -27,7 +27,8 @@ import {
   Divider,
   Grid,
   Paper,
-  Badge
+  Badge,
+  useTheme
 } from "@mui/material";
 import {
   BookmarkAddOutlined,
@@ -51,7 +52,7 @@ const useIsTab = () => false;
 const BlogsComponent = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
-
+  const theme = useTheme();
   const handleBlogClick = (slug) => {
     navigate(`/blogs/${slug}`);
   };
@@ -84,6 +85,8 @@ const BlogsComponent = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchInput, setSearchInput] = useState('');
+
+  const isDark = theme.palette.mode === "dark";
 
   // Toggle comments section for a blog
   const toggleComments = (blogId) => {
@@ -182,7 +185,6 @@ const BlogsComponent = () => {
         search: searchQuery,
         filter: activeFilter === 'all' ? '' : activeFilter
       });
-      console.log(res);
       setBlogs(prev => page === 1 ? res.data : [...prev, ...res.data]);
       setTotalBlogs(res.total);
       setHasMore(res.hasMore);
@@ -603,8 +605,9 @@ const BlogsComponent = () => {
           <Box sx={{ 
             mb: 6,
             textAlign: 'center',
-            background: 'linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%)',
-            borderRadius: 4,
+            background: isDark
+              ? 'linear-gradient(135deg,rgb(50, 42, 42) 0%,rgb(30, 18, 21) 100%)'
+              : 'linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%)',            borderRadius: 4,
             p: { xs: 4, md: 6 },
             boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
           }}>

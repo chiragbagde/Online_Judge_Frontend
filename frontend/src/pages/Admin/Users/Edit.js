@@ -52,7 +52,7 @@ const Edit = ({
       setOpenEditDialog(false);
       toast.success("User updated successfully!");
     } catch (e) {
-      console.log(e.message);
+      console.error(e.message);
     }
   };
 

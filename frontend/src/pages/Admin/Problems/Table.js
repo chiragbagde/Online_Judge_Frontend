@@ -107,7 +107,6 @@ const ProblemsTable = ({
                 <TableCell sx={{ display: "flex", gap: 2 }} className="center">
                   <Button
                     onClick={() => {
-                      console.log(problem);
                       setSelectedProblem(problem);
                       setOpenEditDialog(true);
                     }}
