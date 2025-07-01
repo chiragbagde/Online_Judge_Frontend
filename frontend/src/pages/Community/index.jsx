@@ -47,7 +47,15 @@ const Community = () => {
     try {
       setLoading(true);
       const filter = tabValue === 0 ? 'recent' : tabValue === 1 ? 'popular' : 'following';
+      console.log('Fetching posts with:', { page, filter });
       const data = await getPosts(page, filter);
+      console.log('Received data:', data);
+      
+      if (!data || !data.posts) {
+        console.error('Invalid data received:', data);
+        throw new Error('Invalid response format from server');
+      }
+
       setPosts(data.posts);
       setTotalPages(data.totalPages);
       setError(null);
@@ -57,13 +65,19 @@ const Community = () => {
         const statuses = {};
         for (const post of data.posts) {
           if (post.User && post.User._id !== user.id) {
-            const { isFollowing } = await checkFollowStatus(post.User._id);
-            statuses[post.User._id] = isFollowing;
+            try {
+              const { isFollowing } = await checkFollowStatus(post.User._id);
+              statuses[post.User._id] = isFollowing;
+            } catch (followErr) {
+              console.error('Error checking follow status:', followErr);
+              // Don't throw here, just log the error and continue
+            }
           }
         }
         setFollowingStatus(statuses);
       }
     } catch (err) {
+      console.error('Error in fetchPosts:', err);
       setError(err.message || 'Failed to fetch posts');
     } finally {
       setLoading(false);

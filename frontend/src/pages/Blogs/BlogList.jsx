@@ -15,7 +15,7 @@ import {
   TextField,
   InputAdornment
 } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
+import { Search as SearchIcon, AccountCircle } from '@mui/icons-material';
 import { getBlogs } from '../../apis/blogApi';
 import { formatDate } from '../../utils/dateUtils';
 
@@ -112,59 +112,76 @@ const BlogList = () => {
         <>
           <Grid container spacing={4}>
             {blogs.map((blog) => (
-              <Grid item xs={12} sm={6} md={4} key={blog._id}>
+              <Grid item xs={12} sm={12} md={6} key={blog._id}>
                 <Card 
-                  sx={{ 
-                    height: '100%', 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    transition: 'transform 0.3s',
+                  sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    height: '100%',
+                    transition: 'box-shadow 0.3s',
                     '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: 3,
+                      boxShadow: 6,
                     },
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    borderRadius: 2,
+                    overflow: 'hidden'
                   }}
                   onClick={() => navigate(`/blogs/${blog.slug}`)}
                 >
                   {blog.featuredImage && (
                     <CardMedia
                       component="img"
-                      height="200"
+                      sx={{ 
+                        width: { xs: '100%', sm: 250 },
+                        height: { xs: 200, sm: 'auto' },
+                        objectFit: 'cover'
+                      }}
                       image={blog.featuredImage}
                       alt={blog.title}
                     />
                   )}
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Box display="flex" flexWrap="wrap" gap={1} mb={2}>
+                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 3 }}>
+                    <Box display="flex" flexWrap="wrap" gap={1} mb={1}>
                       {blog.tags?.slice(0, 3).map((tag) => (
                         <Chip 
                           key={tag} 
                           label={tag} 
                           size="small" 
-                          color="primary" 
-                          variant="outlined"
+                          color="primary"
+                          variant='light'
                         />
                       ))}
                     </Box>
-                    <Typography gutterBottom variant="h6" component="h2">
+                    <Typography 
+                      gutterBottom 
+                      variant="h5" 
+                      component="h2"
+                      sx={{ fontWeight: 'bold', mt: 1, mb: 2, flexGrow: 1 }}
+                    >
                       {blog.title}
                     </Typography>
-                    <Typography variant="body2" color="textSecondary" paragraph>
+                    <Typography variant="body2" color="text.secondary" paragraph>
                       {blog.excerpt?.substring(0, 150)}...
                     </Typography>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" mt="auto">
-                      <Typography variant="caption" color="textSecondary">
-                        {formatDate(blog.publishedAt || blog.createdAt)}
-                      </Typography>
+                    
+                    <Box 
+                      display="flex" 
+                      justifyContent="space-between" 
+                      alignItems="center" 
+                      mt="auto" 
+                      pt={2}
+                      borderTop={1}
+                      borderColor="divider"
+                    >
                       <Box display="flex" alignItems="center">
-                        <Typography variant="caption" color="textSecondary" sx={{ mr: 1 }}>
-                          {blog.likes?.length || 0} {blog.likes?.length === 1 ? 'like' : 'likes'}
-                        </Typography>
-                        <Typography variant="caption" color="textSecondary">
-                          {blog.comments?.length || 0} {blog.comments?.length === 1 ? 'comment' : 'comments'}
+                        <AccountCircle sx={{ color: 'text.secondary', mr: 1 }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {blog.author?.name || 'Anonymous'}
                         </Typography>
                       </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        {formatDate(blog.publishedAt || blog.createdAt)}
+                      </Typography>
                     </Box>
                   </CardContent>
                 </Card>

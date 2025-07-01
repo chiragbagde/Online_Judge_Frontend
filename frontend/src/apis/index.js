@@ -1,5 +1,5 @@
 const isDev = process.env.REACT_APP_NODE_ENV === "development";
-const baseUrl = isDev ? "http://localhost:5000/" : "https://server-thrumming-waterfall-7530.fly.dev/";
+const baseUrl = true ? "http://localhost:5000/" : "https://server-thrumming-waterfall-7530.fly.dev/";
 
 export const urlConstants = {
   getProblem: baseUrl + "api/problems/id",
@@ -60,6 +60,13 @@ export const urlConstants = {
   getSocialImage: baseUrl + "api/social-profile/download-profile-image",
   deleteSocialImage: baseUrl + "api/social-profile/delete-profile-image",
   getSignedUrl: baseUrl + "api/images/signed-url",
+  getCommunityPosts: baseUrl + "api/community/posts",
+  createCommunityPost: baseUrl + "api/community/posts/create",
+  likeCommunityPost: baseUrl + "api/community/posts/like",
+  commentCommunityPost: baseUrl + "api/community/posts/comment",
+  followCommunityPost: baseUrl + "api/community/follow",
+  getFollowingList: baseUrl + "api/community/following",
+  getFollowersList: baseUrl + "api/community/followers",
 };
 
 export const adminRoutes = {

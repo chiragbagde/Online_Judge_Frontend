@@ -1,27 +1,25 @@
 import axios from 'axios';
 import { getConfig } from '../utils/getConfig';
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+import { urlConstants } from '../apis';
 
 // Get posts with pagination
 export const getPosts = async (page = 1, filter = 'recent') => {
-  const response = await fetch(`${API_URL}/community/posts?page=${page}&filter=${filter}`, {
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`
-    }
-  });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to fetch posts');
+  try {
+    const response = await axios.get(
+      `${urlConstants.getCommunityPosts}?page=${page}&filter=${filter}`,
+      getConfig()
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching posts:', error);
+    throw error.response?.data || { message: 'Failed to fetch posts' };
   }
-  
-  return response.json();
 };
 
 // Create a new post
 export const createPost = async (content, id) => {
   try {
-    const response = await axios.post(`${API_URL}/community/posts`, 
+    const response = await axios.post(`${urlConstants.createCommunityPost}`, 
       { content, id },
       getConfig()
     );
@@ -35,7 +33,7 @@ export const createPost = async (content, id) => {
 export const toggleLike = async (postId) => {
   try {
     const response = await axios.post(
-      `${API_URL}/community/posts/${postId}/like`,
+      `${urlConstants.likeCommunityPost}/${postId}/like`,
       {},
       getConfig()
     );
@@ -49,7 +47,7 @@ export const toggleLike = async (postId) => {
 export const addComment = async (postId, text) => {
   try {
     const response = await axios.post(
-      `${API_URL}/community/posts/${postId}/comments`,
+      `${urlConstants.commentCommunityPost}/${postId}/comments`,
       { text },
       getConfig()
     );
@@ -60,7 +58,7 @@ export const addComment = async (postId, text) => {
 };
 
 export const toggleFollow = async (userId) => {
-  const response = await fetch(`${API_URL}/community/follow`, {
+  const response = await fetch(`${urlConstants.followCommunityPost}`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -78,7 +76,7 @@ export const toggleFollow = async (userId) => {
 };
 
 export const getFollowingList = async () => {
-  const response = await fetch(`${API_URL}/community/following`, {
+  const response = await fetch(`${urlConstants.getFollowingList}`, {
     headers: {
       'Authorization': `Bearer ${localStorage.getItem('token')}`
     }
@@ -93,7 +91,7 @@ export const getFollowingList = async () => {
 };
 
 export const getFollowersList = async () => {
-  const response = await fetch(`${API_URL}/community/followers`, {
+  const response = await fetch(`${urlConstants.getFollowersList}`, {
     headers: {
       'Authorization': `Bearer ${localStorage.getItem('token')}`
     }
@@ -108,7 +106,7 @@ export const getFollowersList = async () => {
 }; 
 
 export const checkFollowStatus = async (userId) => {
-  const response = await fetch(`${API_URL}/community/follow/status/${userId}`, {
+  const response = await fetch(`${urlConstants.followCommunityPost}/status/${userId}`, {
     headers: {
       'Authorization': `Bearer ${localStorage.getItem('token')}`
     }
