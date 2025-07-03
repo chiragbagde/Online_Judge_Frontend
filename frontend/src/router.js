@@ -95,7 +95,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "forgot-password",
-        element: <UnprotectedRoute><ForgotPassword /></"UnprotectedRoute">,
+        element: <UnprotectedRoute><ForgotPassword /></UnprotectedRoute>,
       },
       {
         path: "home",
