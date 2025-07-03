@@ -12,6 +12,7 @@ import { toast } from "react-toastify";
 import axios from "axios";
 import { urlConstants } from "../../../apis";
 import { getConfig } from "../../../utils/getConfig";
+import { useDeleteUserMutation } from "../../../apis/adminApi";
 
 const Delete = ({
   selectedUser,
@@ -21,18 +22,18 @@ const Delete = ({
   users,
   setUsers,
 }) => {
+  const [deleteUser, { isLoading }] = useDeleteUserMutation();
+
   const handleDeleteUser = async () => {
     try {
-      await axios.delete(
-        `${urlConstants.singleUser}/${selectedUser?.id}`,
-        getConfig()
-      );
+      await deleteUser(selectedUser?.id).unwrap();
       setUsers(users.filter((user) => user?.id !== selectedUser?.id));
       setSelectedUser(null);
       setOpenDeleteDialog(false);
       toast.success("User deleted successfully!");
     } catch (e) {
-      console.error(e.message);
+      toast.error("Failed to delete user.");
+      console.error(e);
     }
   };
 

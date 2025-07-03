@@ -9,13 +9,12 @@ import {
   DialogActions,
   IconButton,
 } from "@mui/material";
-import axios from "axios";
-import { urlConstants } from "../../../apis";
 import { toast } from "react-toastify";
 import { getConfig } from "../../../utils/getConfig";
 
 import CloseIcon from "@mui/icons-material/Close";
 import MenuItem from "@mui/material/MenuItem";
+import { useCreateUserMutation } from "../../../apis/adminApi";
 
 const Create = ({ openCreateDialog, setOpenCreateDialog, setUsersData }) => {
   const [newUser, setNewUser] = useState({
@@ -27,21 +26,17 @@ const Create = ({ openCreateDialog, setOpenCreateDialog, setUsersData }) => {
     mobile: null,
     password: "",
   });
+
+  const [createUser, { isLoading }] = useCreateUserMutation();
+
   const handleCreateUser = async () => {
     try {
-      let { data } = await axios.post(
-        urlConstants.createUser,
-        {
-          ...newUser,
-        },
-        getConfig()
-      );
-      const user = data.user;
-      setUsersData((prev) => [...prev, user]);
+      await createUser(newUser).unwrap();
       setOpenCreateDialog(false);
       toast.success("User created successfully!");
     } catch (e) {
-      console.error(e.message);
+      toast.error("Failed to create user.");
+      console.error(e);
     }
   };
 
@@ -69,7 +64,7 @@ const Create = ({ openCreateDialog, setOpenCreateDialog, setUsersData }) => {
         }}
       >
         Create User
-        <IconButton onClick={() => openCreateDialog(false)}>
+        <IconButton onClick={() => setOpenCreateDialog(false)}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>

@@ -18,42 +18,33 @@ import Loading from "../../Loader/Loader";
 import { COMPETITIONS_PER_PAGE } from "../../../utils/constants";
 import { urlConstants } from "../../../apis";
 import getFormattedDateTime from "../../../utils/time";
+import { useGetCompetitionsQuery } from "../../../apis/adminApi";
+import { toast } from "react-toastify";
 
 const CompetitionTable = ({
   setSelectedCompetition,
   setOpenEditDialog,
   setOpenDeleteDialog,
-  competitions,
-  setCompetitions,
-  openCreateDialog,
-  competitionsData,
-  setCompetitionsData,
 }) => {
-  const [loading, setLoading] = useState(true);
+  const {
+    data: competitionsResponse,
+    isLoading: loading,
+    error,
+  } = useGetCompetitionsQuery();
+  const competitionsData = competitionsResponse?.competitions || [];
+  
   const [pageNumber, setPageNumber] = useState(1);
   const count = Math.ceil(competitionsData.length / COMPETITIONS_PER_PAGE);
-
-  const getCompetitions = async () => {
-    try {
-      const { data } = await axios.get(
-        urlConstants.getCompetitions,
-        getConfig()
-      );
-      setCompetitionsData(data.competitions);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleChangePage = (event, newPage) => {
     setPageNumber(newPage);
   };
 
   useEffect(() => {
-    getCompetitions();
-  }, []);
+    if (error) {
+      toast.error("Failed to fetch competitions.");
+    }
+  }, [error]);
 
   useEffect(() => {
     if (competitionsData.length) {
@@ -61,9 +52,13 @@ const CompetitionTable = ({
         (pageNumber - 1) * COMPETITIONS_PER_PAGE,
         pageNumber * COMPETITIONS_PER_PAGE
       );
-      setCompetitions(filteredCompetitions);
     }
   }, [pageNumber, competitionsData]);
+
+  const handleEdit = (competition) => {
+    setSelectedCompetition(competition);
+    setOpenEditDialog(true);
+  };
 
   return (
     <>
@@ -82,36 +77,32 @@ const CompetitionTable = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {competitions.length > 0 &&
-              competitions.map((competition) => (
-                <TableRow key={competition._id}>
-                  <TableCell>{competition.title}</TableCell>
-                  <TableCell>
-                    {getFormattedDateTime(competition.start_date)}
-                  </TableCell>
-                  <TableCell>
-                    {getFormattedDateTime(competition.end_date)}
-                  </TableCell>
-                  <TableCell sx={{ display: "flex", gap: 2 }}>
-                    <Button
-                      onClick={() => {
-                        setSelectedCompetition(competition);
-                        setOpenEditDialog(true);
-                      }}
-                    >
-                      <Edit />
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setSelectedCompetition(competition);
-                        setOpenDeleteDialog(true);
-                      }}
-                    >
-                      <Delete />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+            {competitionsData.map((competition) => (
+              <TableRow key={competition?._id}>
+                <TableCell>{competition.title}</TableCell>
+                <TableCell>
+                  {getFormattedDateTime(competition.start_date)}
+                </TableCell>
+                <TableCell>
+                  {getFormattedDateTime(competition.end_date)}
+                </TableCell>
+                <TableCell sx={{ display: "flex", gap: 2 }}>
+                  <Button
+                    onClick={() => handleEdit(competition)}
+                  >
+                    <Edit />
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setSelectedCompetition(competition);
+                      setOpenDeleteDialog(true);
+                    }}
+                  >
+                    <Delete />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </TableContainer>

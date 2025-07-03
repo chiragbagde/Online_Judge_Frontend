@@ -34,13 +34,14 @@ const Sidebar = ({
       collapseSidebar={collapseSidebar}
       rootStyles={{
         width: "20%",
-        color: "white",
+        color: theme.palette.mode === "dark" ? "white" : theme.palette.text.primary,
 
         "& .ps-sidebar-root": {
-          backgroundColor: theme.palette.background.main,
+          backgroundColor: theme.palette.mode === "dark" ? "#1a1a1a" : "#f5f5f5",
+          borderRight: `1px solid ${theme.palette.mode === "dark" ? "#333" : "#e0e0e0"}`,
         },
         "& .css-dip3t8": {
-          backgroundColor: theme.palette.background.main,
+          backgroundColor: theme.palette.mode === "dark" ? "#1a1a1a" : "#f5f5f5",
         },
         "& .ps-menuitem-root:hover, & .ps-menuitem-root.ps-active, & .ps-submenu-root .ps-menuitem-root:hover, & .ps-submenu-root .ps-menuitem-root.ps-active": {
           backgroundColor:
@@ -49,7 +50,13 @@ const Sidebar = ({
           transition: "background 0.2s, color 0.2s",
         },
         "& .ps-sidebar-root.ps-open, & .css-1tqrhto": {
-          backgroundColor: theme.palette.background.main,
+          backgroundColor: theme.palette.mode === "dark" ? "#1a1a1a" : "#f5f5f5",
+        },
+        "& .ps-menu-button": {
+          color: theme.palette.mode === "dark" ? "white" : theme.palette.text.primary,
+        },
+        "& .ps-submenu-content": {
+          backgroundColor: theme.palette.mode === "dark" ? "#1a1a1a" : "#f5f5f5",
         },
       }}
     >

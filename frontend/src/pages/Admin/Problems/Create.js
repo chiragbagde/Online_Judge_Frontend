@@ -9,17 +9,17 @@ import {
   DialogActions,
   Box,
 } from "@mui/material";
-import axios from "axios";
 import { urlConstants } from "../../../apis";
 import { toast } from "react-toastify";
 import { getConfig } from "../../../utils/getConfig";
 import CloseIcon from "@mui/icons-material/Close";
+import { useCreateProblemMutation } from "../../../apis/adminApi";
 
 import MenuItem from "@mui/material/MenuItem";
 import IconButton from "@mui/material/IconButton";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-const Create = ({ openCreateDialog, setOpenCreateDialog, setProblemsData }) => {
+const Create = ({ openCreateDialog, setOpenCreateDialog }) => {
   const [newProblem, setNewProblem] = useState({
     statement: "",
     difficulty: "",
@@ -31,22 +31,28 @@ const Create = ({ openCreateDialog, setOpenCreateDialog, setProblemsData }) => {
     examples: [],
     testCases: []
   });
+
+  const [createProblem, { isLoading }] = useCreateProblemMutation();
+
   const handleCreateProblem = async () => {
     try {
-      let { data } = await axios.post(
-        urlConstants.createProblem,
-        {
-          ...newProblem,
-        },
-        getConfig()
-      );
-      const problem = data.newprob;
-      setProblemsData((prev) => [...prev, problem]);
+      await createProblem(newProblem).unwrap();
       setOpenCreateDialog(false);
       toast.success("Problem created successfully!");
-      setNewProblem({});
+      setNewProblem({
+        statement: "",
+        difficulty: "",
+        topic: "",
+        competition_problem: "",
+        solution: "",
+        description: [""],
+        constraints: [""],
+        examples: [],
+        testCases: []
+      });
     } catch (e) {
-      console.error(e.message);
+      toast.error("Failed to create problem.");
+      console.error(e);
     }
   };
 

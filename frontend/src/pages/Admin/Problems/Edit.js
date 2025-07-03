@@ -19,13 +19,12 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { urlConstants } from "../../../apis";
 import { getConfig } from "../../../utils/getConfig";
+import { useUpdateProblemMutation } from "../../../apis/adminApi";
 
 const Edit = ({
   selectedProblem,
-  openEditDialog,
   setOpenEditDialog,
-  setProblems,
-  problems,
+  openEditDialog,
 }) => {
   const [updatedProblemData, setUpdatedProblemData] = useState({
     statement: selectedProblem.statement,
@@ -38,25 +37,15 @@ const Edit = ({
     examples: selectedProblem.examples,
   });
 
+  const [updateProblem, { isLoading }] = useUpdateProblemMutation();
+
   const handleUpdateProblem = async () => {
     try {
-      await axios.post(
-        urlConstants.updateProblem,
-        {
-          id: selectedProblem._id,
-          ...selectedProblem,
-          ...updatedProblemData,
-        },
-        getConfig()
-      );
-      const updatedProblem = { ...selectedProblem, ...updatedProblemData };
-      setProblems((prev) =>
-        prev.map((p) => (p._id === updatedProblem._id ? updatedProblem : p))
-      );
+      await updateProblem({ id: selectedProblem._id, ...updatedProblemData }).unwrap();
       toast.success("Problem updated successfully!");
       setOpenEditDialog(false);
     } catch (e) {
-      console.error(e.message);
+      console.error(e);
       toast.error("Failed to update problem.");
     }
   };

@@ -16,42 +16,36 @@ import { getConfig } from "../../../utils/getConfig";
 import Loading from "../../Loader/Loader";
 import { USERS_PER_PAGE } from "../../../utils/constants";
 import { urlConstants } from "../../../apis";
+import { useGetAdminUsersQuery } from "../../../apis/adminApi";
+import { useSelector } from "react-redux";
+import { toast } from "react-toastify";
 
 const UserTable = ({
   setSelectedUser,
   setOpenEditDialog,
   setOpenDeleteDialog,
-  users,
-  setUsers,
-  openCreateDialog,
-  usersData,
-  setUsersData,
 }) => {
-  const [loading, setLoading] = useState(true);
   const [pageNumber, setPageNumber] = useState(1);
-  const count = Math.ceil(usersData.length / USERS_PER_PAGE);
+  const { user } = useSelector((state) => state.auth);
 
-  const getUsers = async () => {
-    try {
-      const { data } = await axios.get(
-        urlConstants.getUsers,
-        getConfig()
-      );
-      setUsersData(data.users);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    data: usersResponse,
+    isLoading: loading,
+    error,
+  } = useGetAdminUsersQuery(user?.id, { skip: !user?.id });
+  const usersData = usersResponse?.users || [];
+
+  const count = Math.ceil(usersData.length / USERS_PER_PAGE);
 
   const handleChangePage = (event, newPage) => {
     setPageNumber(newPage);
   };
 
   useEffect(() => {
-    getUsers();
-  }, []);
+    if (error) {
+      toast.error("Failed to fetch users.");
+    }
+  }, [error]);
 
   useEffect(() => {
     if (usersData.length) {
@@ -59,7 +53,7 @@ const UserTable = ({
         (pageNumber - 1) * USERS_PER_PAGE,
         pageNumber * USERS_PER_PAGE
       );
-      setUsers(filteredUsers);
+      // setUsers(filteredUsers);
     }
   }, [pageNumber, usersData]);
 
@@ -81,7 +75,7 @@ const UserTable = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {users.map((user) => (
+            {usersData.map((user) => (
               <TableRow key={user?.id}>
                 <TableCell>{user.firstname}</TableCell>
                 <TableCell>{user.lastname}</TableCell>

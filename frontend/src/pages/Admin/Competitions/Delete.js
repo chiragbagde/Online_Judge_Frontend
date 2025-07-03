@@ -12,6 +12,7 @@ import { toast } from "react-toastify";
 import axios from "axios";
 import { urlConstants } from "../../../apis";
 import { getConfig } from "../../../utils/getConfig";
+import { useDeleteCompetitionMutation } from "../../../apis/adminApi";
 
 const Delete = ({
   selectedCompetition,
@@ -21,12 +22,11 @@ const Delete = ({
   competitions,
   setCompetitions,
 }) => {
+  const [deleteCompetition, { isLoading }] = useDeleteCompetitionMutation();
+
   const handleDeleteCompetition = async () => {
     try {
-      await axios.delete(
-        `${urlConstants.getCompetitions}/${selectedCompetition._id}`,
-        getConfig()
-      );
+      await deleteCompetition(selectedCompetition._id).unwrap();
       setCompetitions(
         competitions.filter(
           (compeitition) => compeitition._id !== selectedCompetition._id
@@ -36,7 +36,7 @@ const Delete = ({
       setOpenDeleteDialog(false);
       toast.success("Competition deleted successfully!");
     } catch (e) {
-      console.error(e.message);
+      console.error(e);
       toast.error("Error in deleting the competition.");
     }
   };

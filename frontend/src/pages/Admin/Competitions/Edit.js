@@ -12,6 +12,7 @@ import { toast } from "react-toastify";
 import { getConfig } from "../../../utils/getConfig";
 import { urlConstants } from "../../../apis";
 import axios from "axios";
+import { useUpdateCompetitionMutation } from "../../../apis/adminApi";
 
 const Edit = ({
   selectedCompetition,
@@ -26,29 +27,20 @@ const Edit = ({
     end_date: selectedCompetition.end_date,
   });
 
+  const [updateCompetition, { isLoading }] = useUpdateCompetitionMutation();
+
   const handleUpdateCompetition = async () => {
     try {
-      await axios.post(
-        urlConstants.updateCompetition,
-        {
-          id: selectedCompetition._id,
-          competition: { ...selectedCompetition, ...updatedCompetitionData },
-        },
-        getConfig()
-      );
-      const updatedCompetition = {
-        ...selectedCompetition,
-        ...updatedCompetitionData,
-      };
-      setCompetitions(
-        competitions.map((user) =>
-          user?.id === updatedCompetition._id ? updatedCompetition : user
-        )
-      );
+      await updateCompetition({ 
+        id: selectedCompetition._id, 
+        ...updatedCompetitionData 
+      }).unwrap();
+      
       setOpenEditDialog(false);
       toast.success("Competition updated successfully!");
     } catch (e) {
-      console.error(e.message);
+      toast.error("Failed to update competition.");
+      console.error(e);
     }
   };
 

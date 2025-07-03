@@ -6,11 +6,10 @@ import Delete from "./Delete";
 import { Box } from "@mui/material";
 
 const CompetitonHandle = ({ openCreateDialog, setOpenCreateDialog }) => {
-  const [competitionsData, setCompetitionsData] = useState([]);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedCompetition, setSelectedCompetition] = useState(null);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [competitions, setCompetitions] = useState([]);
+
   return (
     <Box sx={{ width: "100%", padding: "20px" }}>
       <Table
@@ -18,26 +17,16 @@ const CompetitonHandle = ({ openCreateDialog, setOpenCreateDialog }) => {
         setSelectedCompetition={setSelectedCompetition}
         setOpenEditDialog={setOpenEditDialog}
         setOpenDeleteDialog={setOpenDeleteDialog}
-        competitions={competitions}
-        setCompetitions={setCompetitions}
-        openCreateDialog={openCreateDialog}
-        competitionsData={competitionsData}
-        setCompetitionsData={setCompetitionsData}
       />
       <Create
         openCreateDialog={openCreateDialog}
         setOpenCreateDialog={setOpenCreateDialog}
-        selectedCompetition={selectedCompetition}
-        setSelectedCompetition={setSelectedCompetition}
-        setCompetitionsData={setCompetitionsData}
       />
       {openEditDialog && (
         <Edit
           openEditDialog={openEditDialog}
           selectedCompetition={selectedCompetition}
           setOpenEditDialog={setOpenEditDialog}
-          competitions={competitions}
-          setCompetitions={setCompetitions}
         />
       )}
       <Delete
@@ -45,8 +34,6 @@ const CompetitonHandle = ({ openCreateDialog, setOpenCreateDialog }) => {
         setOpenDeleteDialog={setOpenDeleteDialog}
         selectedCompetition={selectedCompetition}
         setSelectedCompetition={setSelectedCompetition}
-        competitions={competitions}
-        setCompetitions={setCompetitions}
       />
     </Box>
   );

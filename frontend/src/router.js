@@ -32,8 +32,6 @@ import Community from "./pages/Community";
 import LessonContent from './pages/LearningJourneys/LessonContent';
 import ModuleContent from './pages/LearningJourneys/ModuleContent';
 
-const checkAuth = () =>
-  !!(localStorage.getItem("user") && localStorage.getItem("token"));
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -52,15 +50,30 @@ const ScrollToTop = () => {
   return null;
 };
 
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useSelector((state) => state.auth);
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+};
+
+const UnprotectedRoute = ({ children }) => {
+  const { isAuthenticated } = useSelector((state) => state.auth);
+  if (isAuthenticated) {
+    return <Navigate to="/home" replace />;
+  }
+  return children;
+};
+
 const AppLayout = () => {
-  const { user, loading } = useSelector((state) => state.auth);
-  const isAuth = user || checkAuth();
+  const { isAuthenticated, loading } = useSelector((state) => state.auth);
 
   if (loading) return <div>Loading...</div>;
 
   return (
     <>
-      {isAuth && <Navbar />}
+      {isAuthenticated && <Navbar />}
       <ScrollToTop />
       <Outlet />
     </>
@@ -74,117 +87,101 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <SignIn />,
-        loader: () => (checkAuth() ? redirect("/home") : null),
+        element: <UnprotectedRoute><SignIn /></UnprotectedRoute>,
       },
       {
         path: "signup",
-        element: <SignUp />,
-        loader: () => (checkAuth() ? redirect("/home") : null),
+        element: <UnprotectedRoute><SignUp /></UnprotectedRoute>,
       },
       {
         path: "forgot-password",
-        element: <ForgotPassword />,
-        loader: () => (checkAuth() ? redirect("/home") : null),
+        element: <UnprotectedRoute><ForgotPassword /></"UnprotectedRoute">,
       },
-
       {
         path: "home",
-        element: <Home />,
-        loader: () => (!checkAuth() ? redirect("/") : null),
+        element: <ProtectedRoute><Home /></ProtectedRoute>,
       },
       {
         path: "problems",
+        element: <ProtectedRoute><Outlet /></ProtectedRoute>,
         children: [
           {
             index: true,
             element: <ProblemList />,
-            loader: () => (!checkAuth() ? redirect("/") : null),
           },
           {
             path: "search",
             element: <Problem />,
-            loader: () => (!checkAuth() ? redirect("/") : null),
           },
           {
             path: "statement/:id",
             element: <StatementPage />,
-            loader: () => (!checkAuth() ? redirect("/") : null),
           },
         ],
       },
       {
         path: "competitions",
+        element: <ProtectedRoute><Outlet /></ProtectedRoute>,
         children: [
           {
             index: true,
             element: <Competitions />,
-            loader: () => (!checkAuth() ? redirect("/") : null),
           },
           {
             path: ":id",
             element: <Competition />,
-            loader: () => (!checkAuth() ? redirect("/") : null),
           },
           {
             path: ":c_id/statement/:id",
             element: <CompetitionProblem />,
-            loader: () => (!checkAuth() ? redirect("/") : null),
           },
         ],
       },
       {
         path: "statement/*",
-        element: <CompetitionProblem />,
-        loader: () => (!checkAuth() ? redirect("/") : null),
+        element: <ProtectedRoute><CompetitionProblem /></ProtectedRoute>,
       },
       {
         path: "blogs",
+        element: <ProtectedRoute><Outlet /></ProtectedRoute>,
         children: [
           {
             index: true,
             element: <BlogsComponent />,
-            loader: () => (checkAuth() ? null : redirect("/")),
           },
           {
             path: "new",
             element: <BlogForm />,
-            loader: () => (checkAuth() ? null : redirect("/")),
           },
           {
             path: ":slug",
             element: <BlogDetail />,
-            loader: () => checkAuth() || redirect("/signin")
           },
           {
             path: "edit/:id/:slug",
             element: <BlogForm editMode={true} />,
-            loader: () => checkAuth() || redirect("/signin")
           }
         ]
       },
       {
         path: "admin/*",
-        element: <Admin />,
-        loader: () => (!checkAuth() ? redirect("/") : null),
+        element: <ProtectedRoute><Admin /></ProtectedRoute>,
       },
       {
         path: "compiler",
-        element: <Compiler />,
-        loader: () => (!checkAuth() ? redirect("/") : null),
+        element: <ProtectedRoute><Compiler /></ProtectedRoute>,
       },
       {
         path: "profile",
-        element: <ProfilePage />,
-        loader: () => (!checkAuth() ? redirect("/") : null),
+        element: <ProtectedRoute><ProfilePage /></ProtectedRoute>,
       },
       {
         path: "analytics",
-        element: <Analytics />,
-        loader: () => (!checkAuth() ? redirect("/") : null),
+        element: <ProtectedRoute><Analytics /></ProtectedRoute>,
       },
       {
         path: "learning-journeys",
+        element: <ProtectedRoute><Outlet /></ProtectedRoute>,
         children: [
           {
             index: true,
@@ -206,14 +203,11 @@ export const router = createBrowserRouter([
       },
       {
         path: "community",
-        element: <Community />,
-        loader: () => (!checkAuth() ? redirect("/") : null),
+        element: <ProtectedRoute><Community /></ProtectedRoute>,
       },
-
-      // Fallback route
       {
         path: "*",
-        element: <Navigate to={checkAuth() ? "/home" : "/"} replace />,
+        element: <Navigate to="/home" replace />,
       },
     ],
   },

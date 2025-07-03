@@ -17,44 +17,35 @@ import { getConfig } from "../../../utils/getConfig";
 import { PROBLEMS_PER_PAGE } from "../../../utils/constants";
 import { adminRoutes, urlConstants } from "../../../apis";
 import { useSelector } from "react-redux";
+import { useGetAdminProblemsQuery } from "../../../apis/adminApi";
+import { toast } from "react-toastify";
 
 const ProblemsTable = ({
   setSelectedProblem,
   setOpenEditDialog,
   setOpenDeleteDialog,
-  problems,
-  setProblems,
-  openCreateDialog,
-  problemsData,
-  setProblemsData,
 }) => {
-  const [loading, setLoading] = useState(true);
   const [pageNumber, setPageNumber] = useState(1);
-  const count = Math.ceil(problemsData.length / PROBLEMS_PER_PAGE);
-
   const { user } = useSelector((state) => state.auth);
 
-  const getProblems = async () => {
-    try {
-      const { data } = await axios.get(
-        `${adminRoutes.getProblems}/${user?.id}`,
-        getConfig()
-      );
-      setProblemsData(data.problems);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    data: problemsResponse,
+    isLoading: loading,
+    error,
+  } = useGetAdminProblemsQuery(user?.id, { skip: !user?.id });
+  
+  const problemsData = problemsResponse?.problems || [];
+  const count = Math.ceil(problemsData.length / PROBLEMS_PER_PAGE);
 
   const handleChangePage = (event, newPage) => {
     setPageNumber(newPage);
   };
 
   useEffect(() => {
-    getProblems();
-  }, []);
+    if (error) {
+      toast.error("Failed to fetch problems.");
+    }
+  }, [error]);
 
   useEffect(() => {
     if (problemsData.length) {
@@ -62,12 +53,22 @@ const ProblemsTable = ({
         (pageNumber - 1) * PROBLEMS_PER_PAGE,
         pageNumber * PROBLEMS_PER_PAGE
       );
-      setProblems(filteredProblems);
     }
   }, [pageNumber, problemsData]);
 
+  const handleEdit = (problem) => {
+    setSelectedProblem(problem);
+    setOpenEditDialog(true);
+  };
+
+  const handleDelete = (problem) => {
+    setSelectedProblem(problem);
+    setOpenDeleteDialog(true);
+  };
+
   return (
-    <div className={`problems-page ${openCreateDialog ? "collapse" : ""}`}>
+    <div>
+      <h2 className="text-2xl font-bold mb-4">Problems Table</h2>
       <TableContainer
         className="table"
         sx={{ width: "100%", margin: "2rem auto" }}
@@ -84,7 +85,7 @@ const ProblemsTable = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {problems.map((problem) => (
+            {problemsData.map((problem) => (
               <TableRow
                 key={problem._id}
                 sx={{
@@ -106,18 +107,12 @@ const ProblemsTable = ({
                 </TableCell>
                 <TableCell sx={{ display: "flex", gap: 2 }} className="center">
                   <Button
-                    onClick={() => {
-                      setSelectedProblem(problem);
-                      setOpenEditDialog(true);
-                    }}
+                    onClick={() => handleEdit(problem)}
                   >
                     <Edit />
                   </Button>
                   <Button
-                    onClick={() => {
-                      setSelectedProblem(problem);
-                      setOpenDeleteDialog(true);
-                    }}
+                    onClick={() => handleDelete(problem)}
                   >
                     <Delete />
                   </Button>

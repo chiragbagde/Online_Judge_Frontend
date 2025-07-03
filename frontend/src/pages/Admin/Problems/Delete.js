@@ -1,41 +1,32 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Button,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogContentText,
-  TextField,
   DialogActions,
 } from "@mui/material";
 import { toast } from "react-toastify";
-import axios from "axios";
-import { urlConstants } from "../../../apis";
-import { getConfig } from "../../../utils/getConfig";
+import { useDeleteProblemMutation } from "../../../apis/adminApi";
 
 const Delete = ({
   selectedProblem,
   setSelectedProblem,
   openDeleteDialog,
   setOpenDeleteDialog,
-  problems,
-  setProblems,
 }) => {
+  const [deleteProblem, { isLoading }] = useDeleteProblemMutation();
+
   const handleDeleteProblem = async () => {
     try {
-      await axios.delete(
-        `${urlConstants.problem}/${selectedProblem._id}`,
-        getConfig()
-      );
-      setProblems(
-        problems.filter((problem) => problem._id !== selectedProblem._id)
-      );
+      await deleteProblem(selectedProblem._id).unwrap();
       setSelectedProblem(null);
       setOpenDeleteDialog(false);
       toast.success("Problem deleted successfully!");
     } catch (e) {
-      console.error(e.message);
-      toast.error("Error in deleting the problem.");
+      console.error(e);
+      toast.error("Failed to delete problem.");
     }
   };
 

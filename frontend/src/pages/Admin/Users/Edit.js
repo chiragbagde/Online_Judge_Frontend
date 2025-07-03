@@ -16,6 +16,7 @@ import axios from "axios";
 
 import MenuItem from "@mui/material/MenuItem";
 import CloseIcon from "@mui/icons-material/Close";
+import { useUpdateUserMutation } from "../../../apis/adminApi";
 
 const Edit = ({
   selectedUser,
@@ -35,24 +36,20 @@ const Edit = ({
     password: "",
   });
 
+  const [updateUserMutation, { isLoading }] = useUpdateUserMutation();
+
   const handleUpdateUser = async () => {
     try {
-      await axios.post(
-        urlConstants.updateUserProfile,
-        {
-          id: selectedUser?.id,
-          user: { ...selectedUser, ...updatedUserData },
-        },
-        getConfig()
-      );
-      const updatedUser = { ...selectedUser, ...updatedUserData };
-      setUsers(
-        users.map((user) => (user?.id === updatedUser?.id ? updatedUser : user))
-      );
+      await updateUserMutation({
+        id: selectedUser?.id,
+        ...updatedUserData,
+      }).unwrap();
+      
       setOpenEditDialog(false);
       toast.success("User updated successfully!");
     } catch (e) {
-      console.error(e.message);
+      toast.error("Failed to update user.");
+      console.error(e);
     }
   };
 

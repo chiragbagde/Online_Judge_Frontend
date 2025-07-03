@@ -1,5 +1,5 @@
 export const isDev = process.env.REACT_APP_NODE_ENV === "development";
-export const baseUrl = isDev ? "http://localhost:5000/" : "https://server-thrumming-waterfall-7530.fly.dev/";
+export const baseUrl = true ? "http://localhost:5000/" : "https://server-thrumming-waterfall-7530.fly.dev/";
 
 export const urlConstants = {
   getProblem: baseUrl + "api/problems/id",

@@ -18,6 +18,11 @@ import { toast } from "react-toastify";
 import { getConfig } from "../../../utils/getConfig";
 import { useSelector } from "react-redux";
 import CustomDatepicker from "./Datepicker";
+import { 
+  useCreateCompetitionMutation, 
+  useGetProblemIdsQuery,
+  useGetAdminUsersQuery 
+} from "../../../apis/adminApi";
 
 const Create = ({
   openCreateDialog,
@@ -31,9 +36,14 @@ const Create = ({
     problems: [],
     users: [],
   });
-  const [problems, setProblems] = useState([]);
-  const [users, setUsers] = useState([]);
   const { user } = useSelector((state) => state.auth);
+
+  const { data: problemsData } = useGetProblemIdsQuery(user?.id, { skip: !user?.id });
+  const { data: usersData } = useGetAdminUsersQuery(user?.id, { skip: !user?.id });
+  const problems = problemsData?.problems || [];
+  const users = usersData?.users || [];
+
+  const [createCompetition, { isLoading }] = useCreateCompetitionMutation();
 
   const handleAddUser = (userId) => {
     const selectedUser = users.find((u) => u._id === userId);
@@ -85,17 +95,12 @@ const Create = ({
 
   const handleCreateCompetition = async () => {
     try {
-      let { data } = await axios.post(
-        urlConstants.createCompetition,
-        {
-          ...newCompetition,
-          start_date: new Date(newCompetition.start_date),
-          end_date: new Date(newCompetition.end_date),
-        },
-        getConfig()
-      );
-      const competition = data.competiton;
-      setCompetitionsData((prev) => [...prev, competition]);
+      await createCompetition({
+        ...newCompetition,
+        start_date: new Date(newCompetition.start_date),
+        end_date: new Date(newCompetition.end_date),
+      }).unwrap();
+      
       setOpenCreateDialog(false);
       toast.success("Competition created successfully!");
       setNewCompetition({
@@ -106,38 +111,10 @@ const Create = ({
         users: [],
       });
     } catch (e) {
-      console.error(e.message);
+      toast.error("Failed to create competition.");
+      console.error(e);
     }
   };
-
-  const getProblemIds = async () => {
-    try {
-      const { data } = await axios.get(
-        `${adminRoutes.getProblemIds}/${user?.id}`,
-        getConfig()
-      );
-      setProblems(data.problems);
-    } catch (e) {
-      console.error(e.message);
-    }
-  };
-
-  const getUserIds = async () => {
-    try {
-      const { data } = await axios.get(
-        `${adminRoutes.adminUserId}/${user?.id}`,
-        getConfig()
-      );
-      setUsers(data.users);
-    } catch (e) {
-      console.error(e.message);
-    }
-  };
-
-  useEffect(() => {
-    getProblemIds();
-    getUserIds();
-  }, []);
 
   return (
     <Dialog
