@@ -3,21 +3,27 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Container, 
   Grid, 
-  Card, 
-  CardContent, 
-  CardMedia, 
   Typography, 
   Button, 
   Box, 
   CircularProgress,
-  Chip,
   Pagination,
   TextField,
-  InputAdornment
+  InputAdornment,
+  Paper,
+  Stack,
+  Fade,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
-import { Search as SearchIcon, AccountCircle } from '@mui/icons-material';
+import { 
+  Search as SearchIcon, 
+  Article,
+  TrendingUp,
+  AutoAwesome
+} from '@mui/icons-material';
 import { getBlogs } from '../../apis/blogApi';
-import { formatDate } from '../../utils/dateUtils';
+import BlogCard from './BlogCard';
 
 const BlogList = () => {
   const [blogs, setBlogs] = useState([]);
@@ -26,6 +32,9 @@ const BlogList = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isDark = theme.palette.mode === 'dark';
 
   const fetchBlogs = async () => {
     try {
@@ -57,152 +66,240 @@ const BlogList = () => {
 
   if (loading && blogs.length === 0) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
+      <Box
+        sx={{
+          minHeight: '100vh',
+          background: isDark 
+            ? 'linear-gradient(135deg, #0a0e27 0%, #1a1d35 100%)'
+            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <Paper
+          sx={{
+            p: 4,
+            background: isDark ? 'rgba(30,30,30,0.9)' : 'rgba(255,255,255,0.95)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: 4,
+            textAlign: 'center'
+          }}
+        >
+          <CircularProgress size={40} thickness={4} />
+          <Typography variant="h6" sx={{ mt: 2 }}>Loading blogs...</Typography>
+        </Paper>
       </Box>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box mb={4}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Blog Posts
-        </Typography>
-        <Typography variant="subtitle1" color="textSecondary">
-          Discover the latest articles and tutorials
-        </Typography>
-      </Box>
-
-      <Box component="form" onSubmit={handleSearch} mb={4}>
-        <TextField
-          fullWidth
-          variant="outlined"
-          placeholder="Search blogs..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-            endAdornment: (
-              <Button 
-                type="submit" 
-                variant="contained" 
-                color="primary"
-                sx={{ ml: 1 }}
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: isDark 
+          ? 'linear-gradient(135deg, #0a0e27 0%, #1a1d35 100%)'
+          : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      }}
+    >
+      <Container maxWidth="xl" sx={{ py: 6 }}>
+        <Fade in timeout={800}>
+          <Box sx={{ textAlign: 'center', mb: 8 }}>
+            <Stack direction="row" alignItems="center" justifyContent="center" spacing={2} sx={{ mb: 3 }}>
+              <TrendingUp sx={{ fontSize: 40, color: '#ffd700' }} />
+              <Typography 
+                variant="h2" 
+                component="h1" 
+                sx={{ 
+                  fontWeight: 900,
+                  background: 'linear-gradient(45deg, #fff 30%, #f0f0f0 90%)',
+                  backgroundClip: 'text',
+                  textFillColor: 'transparent',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  textShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                }}
               >
-                Search
-              </Button>
-            ),
-          }}
-        />
-      </Box>
+                Blog Archive
+              </Typography>
+            </Stack>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                color: 'rgba(255,255,255,0.9)',
+                fontWeight: 300,
+                maxWidth: 600,
+                mx: 'auto',
+                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+              }}
+            >
+              Explore our comprehensive collection of development articles and tutorials
+            </Typography>
+          </Box>
+        </Fade>
 
-      
-      {blogs.length === 0 ? (
-        <Box textAlign="center" py={8}>
-          <Typography variant="h6" color="textSecondary">
-            No blog posts found. Check back later for updates!
-          </Typography>
-        </Box>
-      ) : (
-        <>
-          <Grid container spacing={4}>
-            {blogs.map((blog) => (
-              <Grid item xs={12} sm={12} md={6} key={blog._id}>
-                <Card 
+        <Paper
+          elevation={0}
+          sx={{
+            p: 4,
+            mb: 4,
+            backgroundColor: isDark ? 'rgba(30,30,30,0.9)' : 'rgba(255,255,255,0.95)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: 4,
+            border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
+            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+          }}
+        >
+          <Box component="form" onSubmit={handleSearch}>
+            <TextField
+              fullWidth
+              variant="outlined"
+              placeholder="Search for articles, tutorials, guides..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              sx={{
+                '& .MuiOutlinedInput-root': { 
+                  borderRadius: 3,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                  '&:hover': {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                  },
+                  '&.Mui-focused': {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                  }
+                }
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <Button 
+                    type="submit" 
+                    variant="contained"
+                    sx={{
+                      ml: 1,
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
+                      '&:hover': {
+                        transform: 'translateY(-1px)',
+                        boxShadow: theme.shadows[4],
+                      },
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    Search
+                  </Button>
+                ),
+              }}
+            />
+          </Box>
+        </Paper>
+        
+        {blogs.length === 0 ? (
+          <Paper
+            sx={{
+              p: 8,
+              textAlign: 'center',
+              backgroundColor: isDark ? 'rgba(30,30,30,0.9)' : 'rgba(255,255,255,0.95)',
+              backdropFilter: 'blur(20px)',
+              borderRadius: 4,
+              border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
+              boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+            }}
+          >
+            <Article sx={{ fontSize: 60, color: 'text.disabled', mb: 3 }} />
+            <Typography variant="h5" color="text.secondary" gutterBottom>
+              No blog posts found
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              {searchQuery ? 'Try adjusting your search terms' : 'Check back later for new articles!'}
+            </Typography>
+            {searchQuery && (
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  setSearchQuery('');
+                  setPage(1);
+                }}
+                sx={{
+                  borderRadius: 3,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                }}
+              >
+                Clear Search
+              </Button>
+            )}
+          </Paper>
+        ) : (
+          <>
+            <Grid container spacing={4}>
+              {blogs.map((blog, index) => (
+                <Grid item xs={12} sm={6} lg={4} key={blog._id}>
+                  <Fade in timeout={600 + index * 100}>
+                    <Box>
+                      <BlogCard blog={blog} />
+                    </Box>
+                  </Fade>
+                </Grid>
+              ))}
+            </Grid>
+            
+            {totalPages > 1 && (
+              <Box 
+                sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  mt: 8,
+                }}
+              >
+                <Paper
                   sx={{
-                    display: 'flex',
-                    flexDirection: { xs: 'column', sm: 'row' },
-                    height: '100%',
-                    transition: 'box-shadow 0.3s',
-                    '&:hover': {
-                      boxShadow: 6,
-                    },
-                    cursor: 'pointer',
-                    borderRadius: 2,
-                    overflow: 'hidden'
+                    p: 2,
+                    backgroundColor: isDark ? 'rgba(30,30,30,0.9)' : 'rgba(255,255,255,0.95)',
+                    backdropFilter: 'blur(20px)',
+                    borderRadius: 4,
+                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
+                    boxShadow: '0 8px 20px rgba(0,0,0,0.1)',
                   }}
-                  onClick={() => navigate(`/blogs/${blog.slug}`)}
                 >
-                  {blog.featuredImage && (
-                    <CardMedia
-                      component="img"
-                      sx={{ 
-                        width: { xs: '100%', sm: 250 },
-                        height: { xs: 200, sm: 'auto' },
-                        objectFit: 'cover'
-                      }}
-                      image={blog.featuredImage}
-                      alt={blog.title}
-                    />
-                  )}
-                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 3 }}>
-                    <Box display="flex" flexWrap="wrap" gap={1} mb={1}>
-                      {blog.tags?.slice(0, 3).map((tag) => (
-                        <Chip 
-                          key={tag} 
-                          label={tag} 
-                          size="small" 
-                          color="primary"
-                          variant='light'
-                        />
-                      ))}
-                    </Box>
-                    <Typography 
-                      gutterBottom 
-                      variant="h5" 
-                      component="h2"
-                      sx={{ fontWeight: 'bold', mt: 1, mb: 2, flexGrow: 1 }}
-                    >
-                      {blog.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" paragraph>
-                      {blog.excerpt?.substring(0, 150)}...
-                    </Typography>
-                    
-                    <Box 
-                      display="flex" 
-                      justifyContent="space-between" 
-                      alignItems="center" 
-                      mt="auto" 
-                      pt={2}
-                      borderTop={1}
-                      borderColor="divider"
-                    >
-                      <Box display="flex" alignItems="center">
-                        <AccountCircle sx={{ color: 'text.secondary', mr: 1 }} />
-                        <Typography variant="body2" color="text.secondary">
-                          {blog.author?.name || 'Anonymous'}
-                        </Typography>
-                      </Box>
-                      <Typography variant="caption" color="text.secondary">
-                        {formatDate(blog.publishedAt || blog.createdAt)}
-                      </Typography>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-          
-          {totalPages > 1 && (
-            <Box display="flex" justifyContent="center" mt={6}>
-              <Pagination 
-                count={totalPages} 
-                page={page} 
-                onChange={handlePageChange} 
-                color="primary" 
-                size="large"
-              />
-            </Box>
-          )}
-        </>
-      )}
-    </Container>
+                  <Pagination 
+                    count={totalPages} 
+                    page={page} 
+                    onChange={handlePageChange} 
+                    color="primary" 
+                    size={isMobile ? "medium" : "large"}
+                    sx={{
+                      '& .MuiPaginationItem-root': {
+                        borderRadius: 2,
+                        fontWeight: 600,
+                        '&:hover': {
+                          transform: 'translateY(-1px)',
+                          boxShadow: theme.shadows[2],
+                        },
+                        transition: 'all 0.2s ease',
+                      },
+                      '& .Mui-selected': {
+                        background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
+                        color: 'white',
+                        '&:hover': {
+                          background: 'linear-gradient(45deg, #5a6fd8 30%, #6a4190 90%)',
+                        }
+                      }
+                    }}
+                  />
+                </Paper>
+              </Box>
+            )}
+          </>
+        )}
+      </Container>
+    </Box>
   );
 };
 

@@ -18,7 +18,7 @@ import {
   Skeleton
 } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
-import { getBlogs, getTrendingArticles } from '../apis/blogApi';
+import { useGetBlogsQuery } from '../apis/blogApi';
 import { formatDistanceToNow } from 'date-fns';
 
 import HeroSection from '../components/home/HeroSection';
@@ -150,8 +150,10 @@ const HomePage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [searchQuery, setSearchQuery] = useState('');
-  const [featuredPosts, setFeaturedPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  
+  const { data: featuredPostsData, isLoading: loading } = useGetBlogsQuery({ limit: 3, page: 1 });
+  const featuredPosts = featuredPostsData?.data || [];
+
   const [dailyProblem, setDailyProblem] = useState(null);
   
   const handleSearch = (query) => {
@@ -159,31 +161,12 @@ const HomePage = () => {
   };
   
   useEffect(() => {
-    const fetchFeaturedPosts = async () => {
-      try {
-        setLoading(true);
-        const response = await getBlogs({ limit: 5, page: 1 });
-        setFeaturedPosts(response.data || []);
-      } catch (error) {
-        console.error('Error fetching featured posts:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFeaturedPosts();
-  }, []);
-
-  useEffect(() => {
     const fetchDailyProblem = async () => {
       try {
-        setLoading(true);
         const {data} = await axios.get(`${urlConstants.getDailyProblem}`, getConfig());
         setDailyProblem(data.dailyProblem || []);
       } catch (error) {
         console.error('Error fetching daily problem:', error);
-      } finally {
-        setLoading(false);
       }
     };
 

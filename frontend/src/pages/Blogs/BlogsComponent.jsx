@@ -12,35 +12,62 @@ import {
   Container,
   Grid,
   Chip,
-  useTheme
+  useTheme,
+  Paper,
+  Stack,
+  Fade,
+  useMediaQuery
 } from "@mui/material";
-import { Search as SearchIcon, Add as AddIcon } from "@mui/icons-material";
-import { getBlogs, getTrendingArticles, getPopularTags } from '../../apis/blogApi';
+import { 
+  Search as SearchIcon, 
+  Add as AddIcon,
+  TrendingUp,
+  Article,
+  AutoAwesome
+} from "@mui/icons-material";
+import { 
+  useGetBlogsQuery, 
+  useGetTrendingArticlesQuery, 
+  useGetPopularTagsQuery 
+} from '../../apis/blogApi';
 import BlogCard from './BlogCard';
 import BlogSidebar from './BlogSidebar';
 
 const BlogsComponent = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const searchTimeoutRef = useRef(null);
   
-  const [blogs, setBlogs] = useState([]);
-  const [trendingArticles, setTrendingArticles] = useState([]);
-  const [popularTags, setPopularTags] = useState([]);
-  
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  
-  const [loading, setLoading] = useState(true);
-  const [sidebarLoading, setSidebarLoading] = useState({
-    trending: true,
-    tags: true
-  });
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchInput, setSearchInput] = useState('');
 
   const isDark = theme.palette.mode === "dark";
+
+  const {
+    data: blogsData,
+    isLoading: blogsLoading,
+    isFetching: blogsFetching,
+  } = useGetBlogsQuery({
+    page,
+    limit: 15,
+    search: searchQuery,
+    tag: activeFilter !== 'all' ? activeFilter : undefined,
+  });
+  const blogs = blogsData?.data || [];
+  const hasMore = blogsData?.pagination?.page < blogsData?.pagination?.pages;
+
+  const { 
+    data: trendingArticles, 
+    isLoading: trendingLoading 
+  } = useGetTrendingArticlesQuery({ limit: 5 });
+
+  const { 
+    data: popularTags, 
+    isLoading: tagsLoading 
+  } = useGetPopularTagsQuery({ limit: 10 });
 
   const handleSearch = (e) => {
     const value = e.target.value;
@@ -51,58 +78,10 @@ const BlogsComponent = () => {
     }
     
     searchTimeoutRef.current = setTimeout(() => {
-      setSearchQuery(value);
       setPage(1);
+      setSearchQuery(value);
     }, 500);
   };
-
-  const fetchBlogs = async (isNewSearch = false) => {
-    try {
-      setLoading(true);
-      const res = await getBlogs({
-        page: isNewSearch ? 1 : page,
-        limit: 15,
-        search: searchQuery,
-        tag: activeFilter !== 'all' ? activeFilter : undefined
-      });
-      setBlogs(isNewSearch ? res.data : (prev) => [...prev, ...res.data]);
-      setHasMore(res.hasMore);
-    } catch (error) {
-      console.error('Error fetching blogs:', error);
-      toast.error('Failed to load blogs');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchBlogs(true);
-  }, [searchQuery, activeFilter]);
-
-  useEffect(() => {
-    if (page > 1) {
-      fetchBlogs();
-    }
-  }, [page]);
-  
-  useEffect(() => {
-    const fetchSidebarData = async () => {
-      try {
-        setSidebarLoading({ trending: true, tags: true });
-        const [trendingRes, tagsRes] = await Promise.all([
-          getTrendingArticles({ limit: 5 }),
-          getPopularTags({ limit: 10 })
-        ]);
-        setTrendingArticles(trendingRes.data);
-        setPopularTags(tagsRes.data);
-      } catch (error) {
-        console.error('Error fetching sidebar data:', error);
-      } finally {
-        setSidebarLoading({ trending: false, tags: false });
-      }
-    };
-    fetchSidebarData();
-  }, []);
 
   const handleTagClick = (tag) => {
     setPage(1);
@@ -112,103 +91,225 @@ const BlogsComponent = () => {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4, backgroundColor: isDark ? theme.palette.background.default : '#f4f6f8' }}>
-      <Box sx={{ textAlign: 'center', mb: 5 }}>
-        <Typography variant="h2" component="h1" sx={{ fontWeight: 'bold' }}>
-          Tech & Code Insights
-        </Typography>
-        <Typography variant="h6" color="text.secondary" sx={{ mt: 1 }}>
-          Your daily dose of development articles, tutorials, and discussions.
-        </Typography>
-      </Box>
-
-      <Grid container spacing={4}>
-        <Grid item xs={12} md={8}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <TextField
-              variant="outlined"
-              placeholder="Search articles..."
-              value={searchInput}
-              onChange={handleSearch}
-              sx={{
-                flexGrow: 1,
-                mr: 2,
-                '& .MuiOutlinedInput-root': { borderRadius: '8px' }
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: isDark 
+          ? 'linear-gradient(135deg, #0a0e27 0%, #1a1d35 100%)'
+          : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      }}
+    >
+      <Container maxWidth="xl" sx={{ py: 6 }}>
+        <Fade in timeout={800}>
+          <Box sx={{ textAlign: 'center', mb: 8 }}>
+            <Stack direction="row" alignItems="center" justifyContent="center" spacing={2} sx={{ mb: 3 }}>
+              <AutoAwesome sx={{ fontSize: 40, color: '#ffd700' }} />
+              <Typography 
+                variant="h2" 
+                component="h1" 
+                sx={{ 
+                  fontWeight: 900,
+                  background: 'linear-gradient(45deg, #fff 30%, #f0f0f0 90%)',
+                  backgroundClip: 'text',
+                  textFillColor: 'transparent',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  textShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                }}
+              >
+                DevHub Blog
+              </Typography>
+            </Stack>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                color: 'rgba(255,255,255,0.9)',
+                fontWeight: 300,
+                maxWidth: 600,
+                mx: 'auto',
+                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
               }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              onClick={() => navigate('/blogs/new')}
-              sx={{ py: '12px', px: 3, borderRadius: '8px', textTransform: 'none', fontWeight: 'bold' }}
             >
-              New Post
-            </Button>
+              Discover cutting-edge development insights, tutorials, and tech discussions from our community
+            </Typography>
           </Box>
+        </Fade>
+
+        <Grid container spacing={4}>
+          <Grid item xs={12} md={8}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 4,
+                backgroundColor: isDark ? 'rgba(30,30,30,0.9)' : 'rgba(255,255,255,0.95)',
+                backdropFilter: 'blur(20px)',
+                borderRadius: 4,
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
+                boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+              }}
+            >
+              <Stack spacing={4}>
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                  <TextField
+                    variant="outlined"
+                    placeholder="Search for articles, tutorials, guides..."
+                    value={searchInput}
+                    onChange={handleSearch}
+                    fullWidth
+                    sx={{
+                      '& .MuiOutlinedInput-root': { 
+                        borderRadius: 3,
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                        '&:hover': {
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                        },
+                        '&.Mui-focused': {
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                        }
+                      }
+                    }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon sx={{ color: 'text.secondary' }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<AddIcon />}
+                    onClick={() => navigate('/blogs/new')}
+                    sx={{ 
+                      py: 2, 
+                      px: 4, 
+                      borderRadius: 3, 
+                      textTransform: 'none', 
+                      fontWeight: 600,
+                      background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
+                      boxShadow: '0 8px 20px rgba(102, 126, 234, 0.3)',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 12px 25px rgba(102, 126, 234, 0.4)',
+                      },
+                      transition: 'all 0.3s ease',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {isMobile ? 'New' : 'Create Post'}
+                  </Button>
+                </Box>
+                
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  <Chip 
+                    label="All Posts" 
+                    clickable 
+                    onClick={() => handleTagClick('all')}
+                    color={activeFilter === 'all' ? 'primary' : 'default'}
+                    variant={activeFilter === 'all' ? 'filled' : 'outlined'}
+                    icon={<Article />}
+                    sx={{
+                      borderRadius: 6,
+                      fontWeight: 600,
+                      '&:hover': {
+                        transform: 'translateY(-1px)',
+                        boxShadow: theme.shadows[4],
+                      },
+                      transition: 'all 0.2s ease',
+                    }}
+                  />
+                  {(popularTags?.data || []).slice(0, 6).map(tag => (
+                    <Chip
+                      key={tag.name}
+                      label={`${tag.name} (${tag.count})`}
+                      clickable
+                      onClick={() => handleTagClick(tag.name)}
+                      color={activeFilter === tag.name ? 'primary' : 'default'}
+                      variant={activeFilter === tag.name ? 'filled' : 'outlined'}
+                      sx={{
+                        borderRadius: 6,
+                        fontWeight: 500,
+                        '&:hover': {
+                          transform: 'translateY(-1px)',
+                          boxShadow: theme.shadows[4],
+                        },
+                        transition: 'all 0.2s ease',
+                      }}
+                    />
+                  ))}
+                </Stack>
+
+                {blogsLoading && page === 1 ? (
+                  <Box sx={{ textAlign: 'center', py: 8 }}>
+                    <CircularProgress size={40} thickness={4} />
+                    <Typography variant="body1" sx={{ mt: 2, color: 'text.secondary' }}>
+                      Loading amazing content...
+                    </Typography>
+                  </Box>
+                ) : blogs.length > 0 ? (
+                  <Grid container spacing={3}>
+                    {blogs.map((blog, index) => (
+                      <Grid item xs={12} lg={6} key={blog._id}>
+                        <Fade in timeout={600 + index * 100}>
+                          <Box>
+                            <BlogCard blog={blog} />
+                          </Box>
+                        </Fade>
+                      </Grid>
+                    ))}
+                  </Grid>
+                ) : (
+                  <Box sx={{ textAlign: 'center', py: 8 }}>
+                    <Article sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
+                    <Typography variant="h6" color="text.secondary" gutterBottom>
+                      No articles found
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Try adjusting your search or explore different tags
+                    </Typography>
+                  </Box>
+                )}
+
+                {hasMore && !blogsFetching && (
+                  <Box sx={{ textAlign: 'center', mt: 4 }}>
+                    <Button 
+                      variant="outlined" 
+                      onClick={() => setPage(p => p + 1)}
+                      sx={{
+                        py: 2,
+                        px: 4,
+                        borderRadius: 3,
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        borderWidth: 2,
+                        '&:hover': {
+                          borderWidth: 2,
+                          transform: 'translateY(-2px)',
+                          boxShadow: theme.shadows[8],
+                        },
+                        transition: 'all 0.3s ease',
+                      }}
+                    >
+                      Load More Articles
+                    </Button>
+                  </Box>
+                )}
+              </Stack>
+            </Paper>
+          </Grid>
           
-          <Box sx={{ mb: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            <Chip 
-              label="All Posts" 
-              clickable 
-              onClick={() => handleTagClick('all')}
-              color={activeFilter === 'all' ? 'primary' : 'default'}
-              variant={activeFilter === 'all' ? 'filled' : 'outlined'}
-            />
-            {popularTags.slice(0, 5).map(tag => (
-              <Chip
-                key={tag.name}
-                label={tag.name}
-                clickable
-                onClick={() => handleTagClick(tag.name)}
-                color={activeFilter === tag.name ? 'primary' : 'default'}
-                variant={activeFilter === tag.name ? 'filled' : 'outlined'}
-              />
-            ))}
-          </Box>
-
-          {loading && page === 1 ? (
-            <Box sx={{ textAlign: 'center', p: 5 }}><CircularProgress /></Box>
-          ) : blogs.length > 0 ? (
-            <Grid container spacing={4}>
-              {blogs.map((blog) => (
-                <Grid item xs={12} md={6} key={blog._id}>
-                  <BlogCard blog={blog} />
-                </Grid>
-              ))}
-            </Grid>
-          ) : (
-            <Typography sx={{ textAlign: 'center', p: 5 }}>No blogs found.</Typography>
-          )}
-
-          {hasMore && !loading && (
-            <Box sx={{ textAlign: 'center', mt: 4 }}>
-              <Button variant="outlined" onClick={() => setPage(p => p + 1)}>
-                Load More
-              </Button>
-            </Box>
-          )}
-        </Grid>
-        
-        <Grid item xs={12} md={4}>
-          <Box sx={{ position: 'sticky', top: '80px' }}>
+          <Grid item xs={12} md={4}>
             <BlogSidebar 
-              loading={sidebarLoading}
-              trending={trendingArticles}
-              tags={popularTags}
+              loading={{ trending: trendingLoading, tags: tagsLoading }}
+              trending={trendingArticles?.data || []}
+              tags={popularTags?.data || []}
               onTagClick={handleTagClick}
             />
-          </Box>
+          </Grid>
         </Grid>
-      </Grid>
-    </Container>
+      </Container>
+    </Box>
   );
 };
 

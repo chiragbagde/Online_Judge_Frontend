@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import rehypeRaw from 'rehype-raw';
+import 'highlight.js/styles/github-dark.css';
 import { 
   Container, 
   Typography, 
@@ -15,7 +19,11 @@ import {
   Grid,
   Paper,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Stack,
+  Fade,
+  Breadcrumbs,
+  Link as MuiLink
 } from '@mui/material';
 import { 
   Favorite as LikeIcon, 
@@ -23,9 +31,20 @@ import {
   ArrowBack as BackIcon,
   Send as SendIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  Schedule as TimeIcon,
+  Visibility as ViewIcon,
+  Comment as CommentIcon,
+  Share as ShareIcon,
+  Bookmark as BookmarkIcon,
+  Home as HomeIcon
 } from '@mui/icons-material';
-import { getBlogBySlug, toggleLike, addComment, deleteBlog } from '../../apis/blogApi';
+import {
+  useGetBlogBySlugQuery,
+  useToggleLikeMutation,
+  useAddCommentMutation,
+  useDeleteBlogMutation,
+} from '../../apis/blogApi';
 import { formatDate, formatDateTime } from '../../utils/dateUtils';
 import { useAuth } from '../../hooks/useAuth';
 import { toast } from 'react-toastify';
@@ -38,9 +57,19 @@ const BlogDetail = () => {
   const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isDark = theme.palette.mode === 'dark';
   
-  const [blog, setBlog] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: blogData,
+    isLoading: loading,
+    error,
+  } = useGetBlogBySlugQuery(slug);
+  const blog = blogData?.data;
+
+  const [addComment, { isLoading: isAddingComment }] = useAddCommentMutation();
+  const [toggleLike, { isLoading: isLiking }] = useToggleLikeMutation();
+  const [deleteBlog] = useDeleteBlogMutation();
+
   const [comment, setComment] = useState('');
   const [isLiked, setIsLiked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,46 +78,21 @@ const BlogDetail = () => {
   const [commentsError, setCommentsError] = useState(null);
 
   useEffect(() => {
-    const fetchBlog = async () => {
-      try {
-        setLoading(true);
-        const response = await getBlogBySlug(slug);
-        setBlog(response.data);
-        setIsLiked(response.data.likes?.includes(user?._id) || false);
-      } catch (error) {
-        console.error('Error fetching blog:', error);
-        toast.error('Failed to load blog post');
-        navigate('/blogs');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBlog();
-  }, [slug, user?._id, navigate]);
+    if (blog) {
+      setIsLiked(blog.likes?.includes(user?._id) || false);
+    }
+    if (error) {
+      toast.error('Failed to load blog post');
+      navigate('/blogs');
+    }
+  }, [blog, user?._id, error, navigate]);
 
   const handleLike = async () => {
     if (!user) {
       toast.info('Please login to like this post');
       return;
     }
-
-    try {
-      setIsSubmitting(true);
-      const response = await toggleLike(blog._id);
-      setBlog(prev => ({
-        ...prev,
-        likes: response.data.isLiked 
-          ? [...prev.likes, user._id] 
-          : prev.likes.filter(id => id !== user._id)
-      }));
-      setIsLiked(response.data.isLiked);
-    } catch (error) {
-      console.error('Error toggling like:', error);
-      toast.error('Failed to update like');
-    } finally {
-      setIsSubmitting(false);
-    }
+    await toggleLike(blog._id).unwrap();
   };
 
   const handleCommentSubmit = async (e) => {
@@ -101,24 +105,13 @@ const BlogDetail = () => {
     }
 
     try {
-      setIsSubmitting(true);
-      const response = await addComment(blog._id, comment);
-      
-      // Add the new comment to the beginning of the comments array
-      setBlog(prev => ({
-        ...prev,
-        comments: [response.data, ...(prev.comments || [])]
-      }));
-      
-      // Reset the comment input and show success message
+      await addComment({ blogId: blog._id, content: comment }).unwrap();
       setComment('');
       toast.success('Comment added successfully');
     } catch (error) {
       console.error('Error adding comment:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to add comment';
+      const errorMessage = error.data?.message || 'Failed to add comment';
       toast.error(errorMessage);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -131,7 +124,7 @@ const BlogDetail = () => {
           label: 'Yes',
           onClick: async () => {
             try {
-              await deleteBlog(blog._id);
+              await deleteBlog(blog._id).unwrap();
               toast.success('Blog post deleted successfully');
               navigate('/blogs');
             } catch (error) {
@@ -165,373 +158,628 @@ const BlogDetail = () => {
 
   if (loading || !blog) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
+      <Box 
+        sx={{
+          minHeight: '100vh',
+          background: isDark 
+            ? 'linear-gradient(135deg, #0a0e27 0%, #1a1d35 100%)'
+            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <Paper
+          sx={{
+            p: 4,
+            background: isDark ? 'rgba(30,30,30,0.9)' : 'rgba(255,255,255,0.95)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: 4,
+            textAlign: 'center'
+          }}
+        >
+          <CircularProgress size={40} thickness={4} />
+          <Typography variant="h6" sx={{ mt: 2 }}>Loading article...</Typography>
+        </Paper>
       </Box>
     );
   }
 
-  const isAuthor = user && (user._id === blog.author || user.role === 'admin');
+  const isAuthor = user && blog && (user.id === blog.author || user.role === 'admin');
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Button 
-        startIcon={<BackIcon />} 
-        onClick={() => navigate('/blogs')}
-        sx={{ mb: 2 }}
-      >
-        Back to Blogs
-      </Button>
-
-      {isAuthor && (
-        <Box display="flex" justifyContent="flex-end" gap={1} mb={2}>
-          <Button
-            variant="outlined"
-            startIcon={<EditIcon />}
-            onClick={handleEditBlog}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="outlined"
-            color="error"
-            startIcon={<DeleteIcon />}
-            onClick={handleDeleteBlog}
-          >
-            Delete
-          </Button>
-        </Box>
-      )}
-
-      <Paper elevation={3} sx={{ p: { xs: 2, md: 4 }, mb: 4 }}>
-        <Typography variant="h3" component="h1" gutterBottom>
-          {blog.title}
-        </Typography>
-        
-        <Box display="flex" alignItems="center" mb={3}>
-          <Avatar 
-            src={blog.author?.avatar} 
-            alt={blog.author?.name}
-            sx={{ width: 40, height: 40, mr: 1.5 }}
-          >
-            {blog.author?.name?.charAt(0)?.toUpperCase()}
-          </Avatar>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: isDark 
+          ? 'linear-gradient(135deg, #0a0e27 0%, #1a1d35 100%)'
+          : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      }}
+    >
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Fade in timeout={600}>
           <Box>
-            <Typography variant="subtitle1">
-              {blog.author?.name || 'Anonymous'}
-            </Typography>
-            <Typography variant="caption" color="textSecondary">
-              {formatDateTime(blog.publishedAt || blog.createdAt)}
-              {blog.updatedAt > blog.createdAt && ` • Updated ${formatDate(blog.updatedAt)}`}
-            </Typography>
-          </Box>
-        </Box>
-
-        {blog.featuredImage && (
-          <Box mb={4} borderRadius={2} overflow="hidden">
-            <img 
-              src={blog.featuredImage} 
-              alt={blog.title} 
-              style={{ 
-                width: '100%', 
-                maxHeight: '500px', 
-                objectFit: 'cover',
-                borderRadius: '8px'
-              }} 
-            />
-          </Box>
-        )}
-
-        <Box mb={4}>
-          {blog.tags?.length > 0 && (
-            <Box display="flex" flexWrap="wrap" gap={1} mb={3}>
-              {blog.tags.map((tag) => (
-                <Chip 
-                  key={tag} 
-                  label={`#${tag}`} 
-                  size="small" 
-                  variant="outlined"
-                  onClick={() => navigate(`/blogs?tag=${encodeURIComponent(tag)}`)}
-                  sx={{ cursor: 'pointer' }}
-                />
-              ))}
-            </Box>
-          )}
-
-          <Box 
-            className="blog-content"
-            sx={{
-              fontSize: '1.2rem',
-              lineHeight: 1.8,
-              '& > *': {
-                marginBottom: '1.5rem',
-                '&:last-child': {
-                  marginBottom: 0
-                }
-              },
-              '& img': {
-                maxWidth: '100%',
-                height: 'auto',
-                borderRadius: 1,
-                my: 3,
-              },
-              '& h1, & h2, & h3, & h4, & h5, & h6': {
-                marginTop: '2rem',
-                marginBottom: '1rem',
-                fontWeight: 600,
-                lineHeight: 1.3,
-                '&:first-child': {
-                  marginTop: 0
-                }
-              },
-              '& h1': { fontSize: '2.5rem' },
-              '& h2': { fontSize: '2rem' },
-              '& h3': { fontSize: '1.75rem' },
-              '& h4': { fontSize: '1.5rem' },
-              '& h5': { fontSize: '1.25rem' },
-              '& h6': { fontSize: '1.1rem' },
-              '& p': {
-                marginBottom: '1.5rem',
-                lineHeight: 1.8,
-                '&:last-child': {
-                  marginBottom: 0
-                }
-              },
-              '& pre': {
-                backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#f5f5f5',
-                padding: '1.5rem',
-                borderRadius: '0.5rem',
-                overflowX: 'auto',
-                margin: '1.5rem 0',
-                fontSize: '1.2rem',
-                '& code': {
-                  fontFamily: 'monospace',
-                  fontSize: '0.9em',
-                  lineHeight: 1.5,
-                }
-              },
-              '& code': {
-                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                padding: '0.2em 0.4em',
-                borderRadius: '0.3em',
-                fontSize: '0.9em',
-                fontFamily: 'monospace',
-              },
-              '& a': {
-                color: theme.palette.primary.main,
-                textDecoration: 'none',
-                '&:hover': {
-                  textDecoration: 'underline',
-                }
-              },
-              '& blockquote': {
-                borderLeft: `4px solid ${theme.palette.divider}`,
-                padding: '0.5rem 0 0.5rem 1rem',
-                margin: '1.5rem 0',
-                color: theme.palette.text.secondary,
-                '& > p': {
-                  margin: 0,
-                }
-              },
-              '& ul, & ol': {
-                paddingLeft: '1.5rem',
-                margin: '1rem 0',
-                '& li': {
-                  marginBottom: '0.5rem',
-                  '&:last-child': {
-                    marginBottom: 0
-                  }
-                }
-              },
-              '& table': {
-                width: '100%',
-                borderCollapse: 'collapse',
-                margin: '1.5rem 0',
-                '& th, & td': {
-                  border: `1px solid ${theme.palette.divider}`,
-                  padding: '0.75rem',
-                  textAlign: 'left',
-                },
-                '& th': {
-                  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
-                  fontWeight: 600,
-                },
-                '& tr:nth-of-type(even)': {
-                  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
-                }
-              },
-              '& hr': {
-                border: 'none',
-                borderTop: `1px solid ${theme.palette.divider}`,
-                margin: '2rem 0',
-              },
-              '& .contains-task-list': {
-                listStyle: 'none',
-                paddingLeft: '1.5rem',
-                '& li': {
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  '& > input[type="checkbox"]': {
-                    marginRight: '0.5rem',
-                    marginTop: '0.3em',
-                  }
-                }
-              }
-            }}
-          >
-            <ReactMarkdown>
-              {blog.content}
-            </ReactMarkdown>
-          </Box>
-        </Box>
-
-        <Divider sx={{ my: 3 }} />
-
-        <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2} mb={4}>
-          <Box display="flex" alignItems="center">
-            <IconButton 
-              onClick={handleLike} 
-              disabled={isSubmitting}
-              color={isLiked ? 'error' : 'default'}
-              aria-label={isLiked ? 'Unlike' : 'Like'}
-            >
-              {isLiked ? <LikeIcon /> : <LikeBorderIcon />}
-            </IconButton>
-            <Typography variant="body1">
-              {blog.likes?.length || 0} {blog.likes?.length === 1 ? 'Like' : 'Likes'}
-            </Typography>
-          </Box>
-          <Typography variant="body1" color="textSecondary">
-            {blog.comments?.length || 0} {blog.comments?.length === 1 ? 'Comment' : 'Comments'}
-          </Typography>
-        </Box>
-
-        <Divider sx={{ my: 3 }} />
-
-        <Typography variant="h5" component="h2" gutterBottom>
-          Comments
-        </Typography>
-
-        {user ? (
-          <Box component="form" onSubmit={handleCommentSubmit} mb={4}>
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              variant="outlined"
-              placeholder="Write a comment..."
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              disabled={isSubmitting}
-              InputProps={{
-                endAdornment: (
-                  <IconButton 
-                    type="submit" 
-                    color="primary" 
-                    disabled={!comment.trim() || isSubmitting}
-                  >
-                    <SendIcon />
-                  </IconButton>
-                ),
+            <Breadcrumbs 
+              sx={{ 
+                mb: 3, 
+                '& .MuiBreadcrumbs-separator': { color: 'rgba(255,255,255,0.7)' },
+                '& a, & span': { color: 'rgba(255,255,255,0.9)' }
               }}
-            />
-          </Box>
-        ) : (
-          <Box textAlign="center" py={3} mb={4} bgcolor="action.hover" borderRadius={1}>
-            <Typography variant="body1" gutterBottom>
-              Please login to leave a comment
-            </Typography>
-            <Button 
-              variant="contained" 
-              color="primary" 
-              onClick={() => navigate('/login', { state: { from: `/blogs/${slug}` } })}
             >
-              Login
-            </Button>
-          </Box>
-        )}
+              <MuiLink 
+                href="/blogs" 
+                onClick={(e) => { e.preventDefault(); navigate('/blogs'); }}
+                sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 0.5,
+                  textDecoration: 'none',
+                  '&:hover': { textDecoration: 'underline' }
+                }}
+              >
+                <HomeIcon sx={{ fontSize: 16 }} />
+                Blogs
+              </MuiLink>
+              <Typography color="rgba(255,255,255,0.7)">{blog.title}</Typography>
+            </Breadcrumbs>
 
-        {commentsError ? (
-          <Box textAlign="center" py={3} color="error.main">
-            <Typography>Error loading comments. Please try again.</Typography>
-            <Button 
-              variant="outlined" 
-              color="primary" 
-              onClick={() => window.location.reload()}
-              sx={{ mt: 1 }}
-            >
-              Retry
-            </Button>
-          </Box>
-        ) : blog.comments?.length > 0 ? (
-          <Box>
-            {blog.comments.slice(0, visibleComments).map((comment) => (
-              <Box key={comment._id} mb={3}>
-                <Box 
-                  component="div"
-                  display="flex" 
-                  alignItems="flex-start" 
-                  gap={2}
-                  sx={{ cursor: 'default' }}
+            {isAuthor && (
+              <Stack direction="row" spacing={1} sx={{ mb: 3, justifyContent: 'flex-end' }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<EditIcon />}
+                  onClick={handleEditBlog}
+                  sx={{
+                    color: 'white',
+                    borderColor: 'rgba(255,255,255,0.3)',
+                    '&:hover': {
+                      borderColor: 'white',
+                      backgroundColor: 'rgba(255,255,255,0.1)',
+                    }
+                  }}
                 >
-                  <Box 
-                    component="div"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      return false;
+                  Edit
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={handleDeleteBlog}
+                  sx={{
+                    borderColor: 'rgba(244,67,54,0.5)',
+                    '&:hover': {
+                      borderColor: 'error.main',
+                      backgroundColor: 'rgba(244,67,54,0.1)',
+                    }
+                  }}
+                >
+                  Delete
+                </Button>
+              </Stack>
+            )}
+
+            <Paper 
+              elevation={0}
+              sx={{
+                background: isDark 
+                  ? 'linear-gradient(145deg, rgba(30,30,30,0.95) 0%, rgba(40,40,40,0.95) 100%)'
+                  : 'linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)',
+                backdropFilter: 'blur(20px)',
+                borderRadius: 4,
+                border: `1px solid ${isDark ? 'grey.800' : 'grey.200'}`,
+                boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+                overflow: 'hidden'
+              }}
+            >
+              {blog.featuredImage && (
+                <Box 
+                  sx={{ 
+                    height: { xs: 250, md: 400 },
+                    backgroundImage: `url(${blog.featuredImage})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    position: 'relative',
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      background: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.3) 100%)',
+                    }
+                  }}
+                />
+              )}
+
+              <Box sx={{ p: { xs: 3, md: 5 } }}>
+                <Stack spacing={3}>
+                  {blog.tags?.length > 0 && (
+                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                      {blog.tags.map((tag) => (
+                        <Chip 
+                          key={tag} 
+                          label={`#${tag}`} 
+                          size="small" 
+                          onClick={() => navigate(`/blogs?tag=${encodeURIComponent(tag)}`)}
+                          sx={{
+                            backgroundColor: theme.palette.primary.main,
+                            color: 'white',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            '&:hover': {
+                              backgroundColor: theme.palette.primary.dark,
+                              transform: 'translateY(-1px)',
+                            },
+                            transition: 'all 0.2s ease',
+                          }}
+                        />
+                      ))}
+                    </Stack>
+                  )}
+
+                  <Typography 
+                    variant="h3" 
+                    component="h1" 
+                    sx={{ 
+                      fontWeight: 800,
+                      lineHeight: 1.2,
+                      fontSize: { xs: '2rem', md: '3rem' },
+                      color: isDark ? 'grey.100' : 'grey.900',
                     }}
                   >
-                    <Avatar 
-                      src={comment.user?.avatar} 
-                      alt={comment.user?.name}
+                    {blog.title}
+                  </Typography>
+                  
+                  <Stack 
+                    direction={{ xs: 'column', sm: 'row' }} 
+                    justifyContent="space-between" 
+                    alignItems={{ xs: 'flex-start', sm: 'center' }}
+                    spacing={2}
+                  >
+                    <Stack direction="row" alignItems="center" spacing={2}>
+                      <Avatar 
+                        src={blog.author?.avatar} 
+                        alt={blog.author?.name}
+                        sx={{ 
+                          width: 50, 
+                          height: 50,
+                          border: `3px solid ${theme.palette.primary.main}`,
+                        }}
+                      >
+                        {blog.author?.name?.charAt(0)?.toUpperCase()}
+                      </Avatar>
+                      <Box>
+                        <Typography 
+                          variant="h6" 
+                          sx={{ 
+                            fontWeight: 600,
+                            color: isDark ? 'grey.200' : 'grey.800',
+                          }}
+                        >
+                          {blog.author?.name || 'Anonymous'}
+                        </Typography>
+                        <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
+                          <Stack direction="row" alignItems="center" spacing={0.5}>
+                            <TimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                            <Typography variant="body2" color="text.secondary">
+                              {formatDate(blog.publishedAt || blog.createdAt)}
+                            </Typography>
+                          </Stack>
+                          {blog.updatedAt > blog.createdAt && (
+                            <Typography variant="body2" color="text.secondary">
+                              • Updated {formatDate(blog.updatedAt)}
+                            </Typography>
+                          )}
+                        </Stack>
+                      </Box>
+                    </Stack>
+
+                    <Stack direction="row" spacing={2}>
+                      <Stack direction="row" alignItems="center" spacing={0.5}>
+                        <ViewIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {blog.views || 0}
+                        </Typography>
+                      </Stack>
+                      <Stack direction="row" alignItems="center" spacing={0.5}>
+                        <LikeIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {blog.likes?.length || 0}
+                        </Typography>
+                      </Stack>
+                      <Stack direction="row" alignItems="center" spacing={0.5}>
+                        <CommentIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {blog.comments?.length || 0}
+                        </Typography>
+                      </Stack>
+                    </Stack>
+                  </Stack>
+
+                  <Divider sx={{ borderColor: isDark ? 'grey.800' : 'grey.200' }} />
+
+                  <Box 
+                    className="blog-content"
+                    sx={{
+                      fontSize: '1.5rem',
+                      lineHeight: 1.8,
+                      color: isDark ? 'grey.200' : 'grey.800',
+                      '& > *': {
+                        marginBottom: '1.5rem',
+                        '&:last-child': {
+                          marginBottom: 0
+                        }
+                      },
+                      '& img': {
+                        maxWidth: '100%',
+                        height: 'auto',
+                        borderRadius: 2,
+                        my: 3,
+                        boxShadow: theme.shadows[4],
+                      },
+                      '& h1, & h2, & h3, & h4, & h5, & h6': {
+                        marginTop: '2.5rem',
+                        marginBottom: '1rem',
+                        fontWeight: 700,
+                        lineHeight: 1.3,
+                        color: isDark ? 'grey.100' : 'grey.900',
+                        '&:first-child': {
+                          marginTop: 0
+                        }
+                      },
+                      '& h1': { fontSize: '2.5rem' },
+                      '& h2': { fontSize: '2rem' },
+                      '& h3': { fontSize: '1.75rem' },
+                      '& h4': { fontSize: '1.5rem' },
+                      '& h5': { fontSize: '1.25rem' },
+                      '& h6': { fontSize: '1.1rem' },
+                      '& p': {
+                        marginBottom: '1.5rem',
+                        lineHeight: 1.8,
+                      },
+                      '& pre': {
+                        backgroundColor: isDark ? '#0d1117' : '#f6f8fa',
+                        padding: '1.25rem',
+                        borderRadius: 2,
+                        overflowX: 'auto',
+                        margin: '1.5rem 0',
+                        border: `1px solid ${isDark ? '#30363d' : '#d0d7de'}`,
+                        fontSize: '16px',
+                        lineHeight: 1.6,
+                        '& code': {
+                          fontFamily: '"SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace',
+                          fontSize: 'inherit',
+                          lineHeight: 'inherit',
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          padding: 0,
+                        }
+                      },
+                      '& code': {
+                        backgroundColor: isDark ? 'rgba(110,118,129,0.4)' : 'rgba(175,184,193,0.2)',
+                        padding: '0.2em 0.4em',
+                        borderRadius: 3,
+                        fontSize: '15px',
+                        fontFamily: '"SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace',
+                        fontWeight: 400,
+                      },
+                      '& a': {
+                        color: theme.palette.primary.main,
+                        textDecoration: 'none',
+                        fontSize: '1.5rem',
+                        fontWeight: 500,
+                        '&:hover': {
+                          textDecoration: 'underline',
+                        }
+                      },
+                      '& blockquote': {
+                        borderLeft: `4px solid ${theme.palette.primary.main}`,
+                        padding: '1rem 1.5rem',
+                        margin: '2rem 0',
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+                        borderRadius: '0 8px 8px 0',
+                        fontStyle: 'italic',
+                        '& > p': {
+                          margin: 0,
+                        }
+                      },
+                      '& ul, & ol': {
+                        paddingLeft: '1.5rem',
+                        margin: '1.5rem 0',
+                        '& li': {
+                          marginBottom: '0.75rem',
+                          '&:last-child': {
+                            marginBottom: 0
+                          }
+                        }
+                      },
+                      '& table': {
+                        width: '100%',
+                        borderCollapse: 'collapse',
+                        fontSize: '1.5rem',
+                        margin: '2rem 0',
+                        border: `1px solid ${isDark ? 'grey.800' : 'grey.200'}`,
+                        borderRadius: 2,
+                        overflow: 'hidden',
+                        '& th, & td': {
+                          border: `1px solid ${isDark ? 'grey.800' : 'grey.200'}`,
+                          padding: '1rem',
+                          textAlign: 'left',
+                        },
+                        '& th': {
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                          fontWeight: 600,
+                        },
+                        '& tr:nth-of-type(even)': {
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
+                        }
+                      },
+                      '& hr': {
+                        border: 'none',
+                        borderTop: `2px solid ${isDark ? 'grey.800' : 'grey.200'}`,
+                        margin: '3rem 0',
+                        borderRadius: 1,
+                      },
+                    }}
+                  >
+                    <ReactMarkdown 
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeHighlight, rehypeRaw]}
+                    >
+                      {blog.content}
+                    </ReactMarkdown>
+                  </Box>
+
+                  <Divider sx={{ borderColor: isDark ? 'grey.800' : 'grey.200', my: 4 }} />
+
+                  <Stack 
+                    direction={{ xs: 'column', sm: 'row' }} 
+                    justifyContent="space-between" 
+                    alignItems="center" 
+                    spacing={2}
+                  >
+                    <Stack direction="row" spacing={1}>
+                      <Button
+                        onClick={handleLike}
+                        disabled={isSubmitting}
+                        startIcon={isLiked ? <LikeIcon /> : <LikeBorderIcon />}
+                        variant={isLiked ? "contained" : "outlined"}
+                        color={isLiked ? "error" : "primary"}
+                        sx={{
+                          borderRadius: 3,
+                          textTransform: 'none',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {blog.likes?.length || 0} Likes
+                      </Button>
+                      <IconButton
+                        sx={{
+                          borderRadius: 3,
+                          border: `1px solid ${isDark ? 'grey.700' : 'grey.300'}`,
+                          '&:hover': {
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                          }
+                        }}
+                      >
+                        <ShareIcon />
+                      </IconButton>
+                      <IconButton
+                        sx={{
+                          borderRadius: 3,
+                          border: `1px solid ${isDark ? 'grey.700' : 'grey.300'}`,
+                          '&:hover': {
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                          }
+                        }}
+                      >
+                        <BookmarkIcon />
+                      </IconButton>
+                    </Stack>
+                  </Stack>
+
+                  <Divider sx={{ borderColor: isDark ? 'grey.800' : 'grey.200', my: 4 }} />
+
+                  <Box>
+                    <Typography 
+                      variant="h5" 
+                      component="h2" 
                       sx={{ 
-                        width: 40, 
-                        height: 40, 
-                        bgcolor: 'primary.main',
-                        pointerEvents: 'none' // This will make the avatar itself non-interactive
+                        fontWeight: 700, 
+                        mb: 3,
+                        color: isDark ? 'grey.100' : 'grey.900',
                       }}
                     >
-                      {comment.user?.name?.charAt(0)?.toUpperCase()}
-                    </Avatar>
-                  </Box>
-                  <Box flexGrow={1}>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
-                      <Typography variant="subtitle2" fontWeight="bold">
-                        {comment.user?.name || 'Anonymous'}
-                      </Typography>
-                      <Typography variant="caption" color="textSecondary">
-                        {formatDateTime(comment.createdAt)}
-                      </Typography>
-                    </Box>
-                    <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
-                      {comment.content}
+                      Comments ({blog.comments?.length || 0})
                     </Typography>
+
+                    {user ? (
+                      <Paper
+                        component="form"
+                        onSubmit={handleCommentSubmit}
+                        sx={{
+                          p: 3,
+                          mb: 4,
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+                          border: `1px solid ${isDark ? 'grey.800' : 'grey.200'}`,
+                          borderRadius: 3,
+                        }}
+                      >
+                        <Stack direction="row" spacing={2} alignItems="flex-start">
+                          <Avatar 
+                            src={user?.avatar} 
+                            alt={user?.name}
+                            sx={{ width: 40, height: 40 }}
+                          >
+                            {user?.name?.charAt(0)?.toUpperCase()}
+                          </Avatar>
+                          <Box sx={{ flex: 1 }}>
+                            <TextField
+                              fullWidth
+                              multiline
+                              rows={3}
+                              variant="outlined"
+                              placeholder="Share your thoughts..."
+                              value={comment}
+                              onChange={(e) => setComment(e.target.value)}
+                              disabled={isSubmitting}
+                              sx={{
+                                '& .MuiOutlinedInput-root': {
+                                  borderRadius: 2,
+                                }
+                              }}
+                            />
+                            <Stack direction="row" justifyContent="flex-end" sx={{ mt: 2 }}>
+                              <Button
+                                type="submit"
+                                variant="contained"
+                                disabled={!comment.trim() || isSubmitting}
+                                startIcon={<SendIcon />}
+                                sx={{
+                                  borderRadius: 3,
+                                  textTransform: 'none',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                Post Comment
+                              </Button>
+                            </Stack>
+                          </Box>
+                        </Stack>
+                      </Paper>
+                    ) : (
+                      <Paper
+                        sx={{
+                          p: 4,
+                          mb: 4,
+                          textAlign: 'center',
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+                          border: `1px solid ${isDark ? 'grey.800' : 'grey.200'}`,
+                          borderRadius: 3,
+                        }}
+                      >
+                        <Typography variant="h6" gutterBottom>
+                          Join the conversation
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                          Login to share your thoughts and engage with the community
+                        </Typography>
+                        <Button 
+                          variant="contained" 
+                          onClick={() => navigate('/login', { state: { from: `/blogs/${slug}` } })}
+                          sx={{
+                            borderRadius: 3,
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            px: 4,
+                          }}
+                        >
+                          Login to Comment
+                        </Button>
+                      </Paper>
+                    )}
+
+                    {blog.comments?.length > 0 ? (
+                      <Stack spacing={3}>
+                        {blog.comments.slice(0, visibleComments).map((comment) => (
+                          <Paper
+                            key={comment._id}
+                            sx={{
+                              p: 3,
+                              backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+                              border: `1px solid ${isDark ? 'grey.800' : 'grey.200'}`,
+                              borderRadius: 3,
+                            }}
+                          >
+                            <Stack direction="row" spacing={2} alignItems="flex-start">
+                              <Avatar 
+                                src={comment.user?.avatar} 
+                                alt={comment.user?.name}
+                                sx={{ width: 40, height: 40 }}
+                              >
+                                {comment.user?.name?.charAt(0)?.toUpperCase()}
+                              </Avatar>
+                              <Box sx={{ flex: 1 }}>
+                                <Stack 
+                                  direction={{ xs: 'column', sm: 'row' }}
+                                  justifyContent="space-between" 
+                                  alignItems={{ xs: 'flex-start', sm: 'center' }}
+                                  spacing={1}
+                                  sx={{ mb: 1 }}
+                                >
+                                  <Typography 
+                                    variant="subtitle1" 
+                                    sx={{ 
+                                      fontWeight: 600,
+                                      color: isDark ? 'grey.200' : 'grey.800',
+                                    }}
+                                  >
+                                    {comment.user?.name || 'Anonymous'}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {formatDateTime(comment.createdAt)}
+                                  </Typography>
+                                </Stack>
+                                <Typography 
+                                  variant="body1" 
+                                  sx={{ 
+                                    whiteSpace: 'pre-line',
+                                    lineHeight: 1.6,
+                                  }}
+                                >
+                                  {comment.content}
+                                </Typography>
+                              </Box>
+                            </Stack>
+                          </Paper>
+                        ))}
+                        
+                        {blog.comments.length > visibleComments && (
+                          <Box sx={{ textAlign: 'center' }}>
+                            <Button 
+                              variant="outlined" 
+                              onClick={() => setVisibleComments(prev => prev + 5)}
+                              disabled={commentsLoading}
+                              sx={{
+                                borderRadius: 3,
+                                textTransform: 'none',
+                                fontWeight: 600,
+                                px: 4,
+                              }}
+                            >
+                              {commentsLoading ? 'Loading...' : `Load ${Math.min(5, blog.comments.length - visibleComments)} More Comments`}
+                            </Button>
+                          </Box>
+                        )}
+                      </Stack>
+                    ) : (
+                      <Paper
+                        sx={{
+                          p: 4,
+                          textAlign: 'center',
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+                          border: `1px solid ${isDark ? 'grey.800' : 'grey.200'}`,
+                          borderRadius: 3,
+                        }}
+                      >
+                        <CommentIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+                        <Typography variant="h6" color="text.secondary" gutterBottom>
+                          No comments yet
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Be the first to share your thoughts on this article
+                        </Typography>
+                      </Paper>
+                    )}
                   </Box>
-                </Box>
+                </Stack>
               </Box>
-            ))}
-            {blog.comments.length > visibleComments && (
-              <Box textAlign="center" mt={2}>
-                <Button 
-                  variant="outlined" 
-                  onClick={() => setVisibleComments(prev => prev + 5)}
-                  disabled={commentsLoading}
-                >
-                  {commentsLoading ? 'Loading...' : 'Load More Comments'}
-                </Button>
-              </Box>
-            )}
+            </Paper>
           </Box>
-        ) : (
-          <Box textAlign="center" py={3} bgcolor="action.hover" borderRadius={1}>
-            <Typography variant="body1" color="textSecondary">
-              No comments yet. Be the first to comment!
-            </Typography>
-          </Box>
-        )}
-      </Paper>
-    </Container>
+        </Fade>
+      </Container>
+    </Box>
   );
 };
 

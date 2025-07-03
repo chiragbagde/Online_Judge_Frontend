@@ -9,12 +9,14 @@ import {
   Avatar
 } from '@mui/material';
 import { CloudUpload as CloudUploadIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { uploadImage } from '../../apis/imageApi';
+import { uploadBlogImage } from '../../apis/blogApi';
 import { toast } from 'react-toastify';
+import { useSelector } from 'react-redux';
 
 const ImageUploader = ({
   value = '',
   onChange,
+  blogId,
   folder = 'uploads',
   aspectRatio = 1,
   width = '100%',
@@ -29,6 +31,7 @@ const ImageUploader = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = React.useRef(null);
+  const { user } = useSelector((state) => state.auth);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -76,13 +79,14 @@ const ImageUploader = ({
 
     try {
       setIsUploading(true);
-      const formData = new FormData();
-      formData.append('image', file);
-      formData.append('folder', folder);
-
-      const response = await uploadImage(formData);
-      onChange(response.data.url);
-      toast.success('Image uploaded successfully');
+      const response = await uploadBlogImage(file, user.token, blogId);
+      
+      if (response.success) {
+        onChange(response.url);
+        toast.success('Image uploaded successfully');
+      } else {
+        toast.error(response.message || 'Failed to upload image');
+      }
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error('Failed to upload image');
