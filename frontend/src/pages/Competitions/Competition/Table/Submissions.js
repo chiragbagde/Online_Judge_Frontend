@@ -1,13 +1,25 @@
 import React from "react";
-import { Box, Typography, Chip, Avatar, Tooltip } from "@mui/material";
+import { 
+  Box, 
+  Typography, 
+  Chip, 
+  Avatar, 
+  Tooltip,
+  CircularProgress,
+  Alert,
+  Button,
+  Paper
+} from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { 
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
   Code as CodeIcon,
   Assignment as ProblemIcon,
+  Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import getFormattedDateTime from "../../../../utils/time";
+import { useTheme } from "@mui/material";
 
 const getVerdictColor = (verdict) => {
   switch (verdict?.toLowerCase()) {
@@ -35,8 +47,9 @@ const getLanguageColor = (language) => {
   return colors[language?.toLowerCase()] || "#666";
 };
 
-const Submissions = ({ allSubmissions }) => {  
-  if (!allSubmissions) return null;
+const Submissions = ({ allSubmissions, loading, error, onRetry }) => {  
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
 
   const columns = [
     {
@@ -134,6 +147,87 @@ const Submissions = ({ allSubmissions }) => {
     language: submission.language,
   }));
 
+  if (loading) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        py: 8,
+        minHeight: 400
+      }}>
+        <CircularProgress size={40} thickness={4} />
+        <Typography variant="h6" sx={{ ml: 2 }}>
+          Loading submissions...
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        py: 8,
+        minHeight: 400
+      }}>
+        <Paper
+          sx={{
+            p: 4,
+            textAlign: 'center',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+            border: `1px solid ${isDark ? 'grey.800' : 'grey.200'}`,
+            borderRadius: 3,
+          }}
+        >
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error.data?.message || 'Failed to load submissions'}
+          </Alert>
+          <Button 
+            variant="contained" 
+            startIcon={<RefreshIcon />}
+            onClick={onRetry}
+            sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 600 }}
+          >
+            Retry
+          </Button>
+        </Paper>
+      </Box>
+    );
+  }
+
+  if (!allSubmissions || allSubmissions.length === 0) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        py: 8,
+        minHeight: 400
+      }}>
+        <Paper
+          sx={{
+            p: 4,
+            textAlign: 'center',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+            border: `1px solid ${isDark ? 'grey.800' : 'grey.200'}`,
+            borderRadius: 3,
+          }}
+        >
+          <ProblemIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 3 }} />
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            No submissions yet
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Submissions will appear here once participants start solving problems.
+          </Typography>
+        </Paper>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ width: "100%", height: "auto" }}>
       <DataGrid
@@ -153,7 +247,7 @@ const Submissions = ({ allSubmissions }) => {
             py: 1.5,
           },
           '& .MuiDataGrid-columnHeaders': {
-            backgroundColor: "#fafafa",
+            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : "#fafafa",
             borderBottom: "2px solid #f0f0f0",
             '& .MuiDataGrid-columnHeader': {
               padding: "14px 8px",
@@ -165,7 +259,7 @@ const Submissions = ({ allSubmissions }) => {
           },
           '& .MuiDataGrid-row': {
             '&:hover': {
-              backgroundColor: "#f5faff",
+              backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : "#f5faff",
             },
           },
           '& .MuiDataGrid-footerContainer': {

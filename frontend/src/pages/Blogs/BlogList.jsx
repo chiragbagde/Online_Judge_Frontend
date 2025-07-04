@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Container, 
@@ -14,44 +14,42 @@ import {
   Stack,
   Fade,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Alert
 } from '@mui/material';
 import { 
   Search as SearchIcon, 
   Article,
   TrendingUp,
-  AutoAwesome
+  AutoAwesome,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
-import { getBlogs } from '../../apis/blogApi';
+import { useGetBlogsQuery } from '../../apis/blogApi';
 import BlogCard from './BlogCard';
 
 const BlogList = () => {
-  const [blogs, setBlogs] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isDark = theme.palette.mode === 'dark';
 
-  const fetchBlogs = async () => {
-    try {
-      setLoading(true);
-      const response = await getBlogs(page, 9, searchQuery);
-      setBlogs(response.data);
-      setTotalPages(response.pagination?.pages || 1);
-    } catch (error) {
-      console.error('Error fetching blogs:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // RTK Query hook
+  const {
+    data: blogsData,
+    isLoading: loading,
+    error,
+    refetch
+  } = useGetBlogsQuery({
+    page,
+    limit: 9,
+    search: searchQuery,
+  });
 
-  useEffect(() => {
-    fetchBlogs();
-  }, [page, searchQuery]);
+  const blogs = blogsData?.data || [];
+  const totalPages = blogsData?.pagination?.pages || 1;
 
   const handlePageChange = (event, value) => {
     setPage(value);
@@ -61,10 +59,20 @@ const BlogList = () => {
   const handleSearch = (e) => {
     e.preventDefault();
     setPage(1);
-    fetchBlogs();
+    setSearchQuery(searchInput);
   };
 
-  if (loading && blogs.length === 0) {
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setSearchInput('');
+    setPage(1);
+  };
+
+  const handleRetry = () => {
+    refetch();
+  };
+
+  if (error) {
     return (
       <Box
         sx={{
@@ -86,8 +94,17 @@ const BlogList = () => {
             textAlign: 'center'
           }}
         >
-          <CircularProgress size={40} thickness={4} />
-          <Typography variant="h6" sx={{ mt: 2 }}>Loading blogs...</Typography>
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error.data?.message || 'Failed to load blogs'}
+          </Alert>
+          <Button 
+            variant="contained" 
+            startIcon={<RefreshIcon />}
+            onClick={handleRetry}
+            sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 600 }}
+          >
+            Retry
+          </Button>
         </Paper>
       </Box>
     );
@@ -104,37 +121,39 @@ const BlogList = () => {
     >
       <Container maxWidth="xl" sx={{ py: 6 }}>
         <Fade in timeout={800}>
-          <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Stack direction="row" alignItems="center" justifyContent="center" spacing={2} sx={{ mb: 3 }}>
-              <TrendingUp sx={{ fontSize: 40, color: '#ffd700' }} />
+          <Box>
+            <Box sx={{ textAlign: 'center', mb: 8 }}>
+              <Stack direction="row" alignItems="center" justifyContent="center" spacing={2} sx={{ mb: 3 }}>
+                <TrendingUp sx={{ fontSize: 40, color: '#ffd700' }} />
+                <Typography 
+                  variant="h2" 
+                  component="h1" 
+                  sx={{ 
+                    fontWeight: 900,
+                    background: 'linear-gradient(45deg, #fff 30%, #f0f0f0 90%)',
+                    backgroundClip: 'text',
+                    textFillColor: 'transparent',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    textShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                  }}
+                >
+                  Blog Archive
+                </Typography>
+              </Stack>
               <Typography 
-                variant="h2" 
-                component="h1" 
+                variant="h6" 
                 sx={{ 
-                  fontWeight: 900,
-                  background: 'linear-gradient(45deg, #fff 30%, #f0f0f0 90%)',
-                  backgroundClip: 'text',
-                  textFillColor: 'transparent',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  textShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                  color: 'rgba(255,255,255,0.9)',
+                  fontWeight: 300,
+                  maxWidth: 600,
+                  mx: 'auto',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.3)',
                 }}
               >
-                Blog Archive
+                Explore our comprehensive collection of development articles and tutorials
               </Typography>
-            </Stack>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                color: 'rgba(255,255,255,0.9)',
-                fontWeight: 300,
-                maxWidth: 600,
-                mx: 'auto',
-                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-              }}
-            >
-              Explore our comprehensive collection of development articles and tutorials
-            </Typography>
+            </Box>
           </Box>
         </Fade>
 
@@ -155,8 +174,8 @@ const BlogList = () => {
               fullWidth
               variant="outlined"
               placeholder="Search for articles, tutorials, guides..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               sx={{
                 '& .MuiOutlinedInput-root': { 
                   borderRadius: 3,
@@ -200,7 +219,29 @@ const BlogList = () => {
           </Box>
         </Paper>
         
-        {blogs.length === 0 ? (
+        {loading && blogs.length === 0 ? (
+          <Box
+            sx={{
+              minHeight: '50vh',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <Paper
+              sx={{
+                p: 4,
+                background: isDark ? 'rgba(30,30,30,0.9)' : 'rgba(255,255,255,0.95)',
+                backdropFilter: 'blur(20px)',
+                borderRadius: 4,
+                textAlign: 'center'
+              }}
+            >
+              <CircularProgress size={40} thickness={4} />
+              <Typography variant="h6" sx={{ mt: 2 }}>Loading blogs...</Typography>
+            </Paper>
+          </Box>
+        ) : blogs.length === 0 ? (
           <Paper
             sx={{
               p: 8,
@@ -222,10 +263,7 @@ const BlogList = () => {
             {searchQuery && (
               <Button
                 variant="outlined"
-                onClick={() => {
-                  setSearchQuery('');
-                  setPage(1);
-                }}
+                onClick={handleClearSearch}
                 sx={{
                   borderRadius: 3,
                   textTransform: 'none',

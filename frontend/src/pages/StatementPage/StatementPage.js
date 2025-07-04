@@ -17,6 +17,9 @@ const StatementPage = ({
   const borderColor = theme.palette.border.secondary;
 
   const descElements = () => {
+    if (!description || !Array.isArray(description)) {
+      return null;
+    }
     return description.map((line, index) => (
       <Typography key={index} variant="body1" sx={{ color: theme.palette.text.primary }}>
         {line}
@@ -104,7 +107,7 @@ const StatementPage = ({
         </Typography>
         {descElements()}
 
-        {examples && (
+        {examples && Array.isArray(examples) && examples.length > 0 && (
           <>
             <Typography
               mt={2}
@@ -144,7 +147,7 @@ const StatementPage = ({
             </ul>
           </>
         )}
-        {constraints && (
+        {constraints && Array.isArray(constraints) && constraints.length > 0 && (
           <>
             <Typography
               variant="h6"

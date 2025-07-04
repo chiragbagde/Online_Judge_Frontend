@@ -23,7 +23,15 @@ import {
   Tooltip
 } from '@mui/material';
 import { Send, ThumbUp, ChatBubbleOutline, PersonAdd, PersonRemove } from '@mui/icons-material';
-import { getPosts, createPost, toggleLike, addComment, toggleFollow, checkFollowStatus } from '../../services/communityService';
+import { 
+  useGetPostsQuery,
+  useCreatePostMutation,
+  useToggleLikeMutation,
+  useAddCommentMutation,
+  useToggleFollowMutation,
+  useCheckFollowStatusQuery
+} from '../../apis/communityApi';
+import { toast } from 'react-toastify';
 
 const getAvatarUrl = (userId) => {
   return `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`;
@@ -35,154 +43,116 @@ const Community = () => {
   const [postContent, setPostContent] = useState('');
   const [commentContent, setCommentContent] = useState('');
   const [activePost, setActivePost] = useState(null);
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [followingStatus, setFollowingStatus] = useState({});
 
-  const fetchPosts = async () => {
-    try {
-      setLoading(true);
-      const filter = tabValue === 0 ? 'recent' : tabValue === 1 ? 'popular' : 'following';
-      console.log('Fetching posts with:', { page, filter });
-      const data = await getPosts(page, filter);
-      console.log('Received data:', data);
-      
-      if (!data || !data.posts) {
-        console.error('Invalid data received:', data);
-        throw new Error('Invalid response format from server');
-      }
+  // RTK Query hooks
+  const {
+    data: postsData,
+    isLoading: postsLoading,
+    error: postsError,
+    refetch: refetchPosts
+  } = useGetPostsQuery({
+    page,
+    filter: tabValue === 0 ? 'recent' : tabValue === 1 ? 'popular' : 'following',
+    limit: 10
+  });
 
-      setPosts(data.posts);
-      setTotalPages(data.totalPages);
-      setError(null);
+  const [createPost, { isLoading: isCreatingPost }] = useCreatePostMutation();
+  const [toggleLike, { isLoading: isLiking }] = useToggleLikeMutation();
+  const [addComment, { isLoading: isAddingComment }] = useAddCommentMutation();
+  const [toggleFollow, { isLoading: isFollowing }] = useToggleFollowMutation();
 
-      // Fetch follow status for each post's author
-      if (isAuthenticated) {
+  const posts = postsData?.posts || [];
+  const totalPages = postsData?.totalPages || 1;
+
+  // Fetch follow status for each post's author
+  useEffect(() => {
+    if (isAuthenticated && posts.length > 0) {
+      const fetchFollowStatuses = async () => {
         const statuses = {};
-        for (const post of data.posts) {
+        for (const post of posts) {
           if (post.User && post.User._id !== user.id) {
             try {
-              const { isFollowing } = await checkFollowStatus(post.User._id);
-              statuses[post.User._id] = isFollowing;
+              const { data } = await fetch(`/api/community/follow/status/${post.User._id}`, {
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+              }).then(res => res.json());
+              statuses[post.User._id] = data?.isFollowing || false;
             } catch (followErr) {
               console.error('Error checking follow status:', followErr);
-              // Don't throw here, just log the error and continue
             }
           }
         }
         setFollowingStatus(statuses);
-      }
-    } catch (err) {
-      console.error('Error in fetchPosts:', err);
-      setError(err.message || 'Failed to fetch posts');
-    } finally {
-      setLoading(false);
+      };
+      fetchFollowStatuses();
     }
-  };
-
-  useEffect(() => {
-    fetchPosts();
-  }, [page, tabValue]);
+  }, [posts, isAuthenticated, user?.id]);
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
-    setPage(1); // Reset to first page when changing tabs
+    setPage(1);
   };
 
   const handlePostSubmit = async (e) => {
     e.preventDefault();
     if (!postContent.trim() || !isAuthenticated) {
-      setSnackbar({ 
-        open: true, 
-        message: 'Please login to create a post', 
-        severity: 'warning' 
-      });
+      toast.warning('Please login to create a post');
       return;
     }
     
     try {
-      const newPost = await createPost(postContent, user.id);
-      setPosts([newPost, ...posts]);
+      await createPost({ content: postContent, id: user.id }).unwrap();
       setPostContent('');
-      setSnackbar({ open: true, message: 'Post created successfully!', severity: 'success' });
+      toast.success('Post created successfully!');
     } catch (err) {
-      setSnackbar({ open: true, message: err.message || 'Failed to create post', severity: 'error' });
+      toast.error(err.data?.message || 'Failed to create post');
     }
   };
 
   const handleCommentSubmit = async (postId) => {
     if (!commentContent.trim() || !isAuthenticated) {
-      setSnackbar({ 
-        open: true, 
-        message: 'Please login to comment', 
-        severity: 'warning' 
-      });
+      toast.warning('Please login to comment');
       return;
     }
     
     try {
-      const newComment = await addComment(postId, commentContent);
-      setPosts(posts.map(post => 
-        post._id === postId 
-          ? { ...post, comments: [...post.comments, newComment] }
-          : post
-      ));
+      await addComment({ postId, content: commentContent }).unwrap();
       setCommentContent('');
       setActivePost(null);
-      setSnackbar({ open: true, message: 'Comment added successfully!', severity: 'success' });
+      toast.success('Comment added successfully!');
     } catch (err) {
-      setSnackbar({ open: true, message: err.message || 'Failed to add comment', severity: 'error' });
+      toast.error(err.data?.message || 'Failed to add comment');
     }
   };
 
   const handleLike = async (postId) => {
     if (!isAuthenticated) {
-      setSnackbar({ 
-        open: true, 
-        message: 'Please login to like posts', 
-        severity: 'warning' 
-      });
+      toast.warning('Please login to like posts');
       return;
     }
 
     try {
-      const updatedPost = await toggleLike(postId);
-      setPosts(posts.map(post => 
-        post._id === postId ? updatedPost : post
-      ));
+      await toggleLike(postId).unwrap();
     } catch (err) {
-      setSnackbar({ open: true, message: err.message || 'Failed to like/unlike post', severity: 'error' });
+      toast.error(err.data?.message || 'Failed to like/unlike post');
     }
   };
 
   const handleFollow = async (userId) => {
     if (!isAuthenticated) {
-      setSnackbar({ 
-        open: true, 
-        message: 'Please login to follow users', 
-        severity: 'warning' 
-      });
+      toast.warning('Please login to follow users');
       return;
     }
 
     try {
-      const { isFollowing } = await toggleFollow(userId);
-      setFollowingStatus(prev => ({ ...prev, [userId]: isFollowing }));
-      setSnackbar({ 
-        open: true, 
-        message: isFollowing ? 'User followed successfully' : 'User unfollowed successfully', 
-        severity: 'success' 
-      });
+      const result = await toggleFollow(userId).unwrap();
+      setFollowingStatus(prev => ({ ...prev, [userId]: result.isFollowing }));
+      toast.success(result.isFollowing ? 'User followed successfully' : 'User unfollowed successfully');
     } catch (err) {
-      setSnackbar({ 
-        open: true, 
-        message: err.message || 'Failed to update follow status', 
-        severity: 'error' 
-      });
+      toast.error(err.data?.message || 'Failed to update follow status');
     }
   };
 
@@ -201,17 +171,21 @@ const Community = () => {
     return date.toLocaleDateString();
   };
 
+  if (postsError) {
+    return (
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {postsError.data?.message || 'Failed to load community posts'}
+        </Alert>
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
         Community
       </Typography>
-      
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
 
       {isAuthenticated && (
         <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
@@ -224,6 +198,7 @@ const Community = () => {
               placeholder="Share something with the community..."
               value={postContent}
               onChange={(e) => setPostContent(e.target.value)}
+              disabled={isCreatingPost}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end" sx={{ mb: 2, alignSelf: 'flex-end' }}>
@@ -231,9 +206,10 @@ const Community = () => {
                       type="submit" 
                       variant="contained" 
                       color="primary"
-                      disabled={!postContent.trim()}
+                      disabled={!postContent.trim() || isCreatingPost}
+                      startIcon={isCreatingPost ? <CircularProgress size={16} /> : null}
                     >
-                      Post
+                      {isCreatingPost ? 'Posting...' : 'Post'}
                     </Button>
                   </InputAdornment>
                 ),
@@ -251,7 +227,7 @@ const Community = () => {
         </Tabs>
       </Box>
 
-      {loading ? (
+      {postsLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
           <CircularProgress />
         </Box>
@@ -279,6 +255,7 @@ const Community = () => {
                               <IconButton
                                 size="small"
                                 onClick={() => handleFollow(post.User._id)}
+                                disabled={isFollowing}
                                 color={followingStatus[post.User._id] ? "primary" : "default"}
                                 sx={{
                                   border: 1,
@@ -308,6 +285,7 @@ const Community = () => {
                             size="small" 
                             startIcon={<ThumbUp fontSize="small" />}
                             onClick={() => handleLike(post._id)}
+                            disabled={isLiking}
                             color={post.likes.includes(user?.id) ? 'primary' : 'inherit'}
                           >
                             {post.likes.length} {post.likes.length === 1 ? 'Like' : 'Likes'}
@@ -338,15 +316,16 @@ const Community = () => {
                                   placeholder="Write a comment..."
                                   value={commentContent}
                                   onChange={(e) => setCommentContent(e.target.value)}
+                                  disabled={isAddingComment}
                                   InputProps={{
                                     endAdornment: (
                                       <InputAdornment position="end">
                                         <IconButton 
                                           onClick={() => handleCommentSubmit(post._id)}
-                                          disabled={!commentContent.trim()}
+                                          disabled={!commentContent.trim() || isAddingComment}
                                           color="primary"
                                         >
-                                          <Send />
+                                          {isAddingComment ? <CircularProgress size={16} /> : <Send />}
                                         </IconButton>
                                       </InputAdornment>
                                     ),
@@ -412,20 +391,6 @@ const Community = () => {
           )}
         </>
       )}
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Container>
   );
 };

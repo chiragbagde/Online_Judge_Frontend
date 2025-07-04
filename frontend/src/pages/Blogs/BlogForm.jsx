@@ -22,6 +22,7 @@ import {
   Fade,
   Breadcrumbs,
   Link as MuiLink,
+  Alert
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -55,11 +56,18 @@ const BlogForm = ({ editMode = false }) => {
   const { user } = useSelector((state) => state.auth);
   const isDark = theme.palette.mode === 'dark';
 
+  // RTK Query hooks
   const [createBlog, { isLoading: isCreating }] = useCreateBlogMutation();
   const [updateBlog, { isLoading: isUpdating }] = useUpdateBlogMutation();
-  const { data: blogResponse, isLoading: isFetching } = useGetBlogByIdQuery(id, {
+  const { 
+    data: blogResponse, 
+    isLoading: isFetching, 
+    error: fetchError,
+    refetch: refetchBlog
+  } = useGetBlogByIdQuery(id, {
     skip: !id,
   });
+
   const blogData = blogResponse?.data;
 
   const [title, setTitle] = useState('');
@@ -194,6 +202,10 @@ const BlogForm = ({ editMode = false }) => {
     }
   };
 
+  const handleRetry = () => {
+    refetchBlog();
+  };
+
   if (isLoading) {
     return (
       <Box
@@ -222,6 +234,45 @@ const BlogForm = ({ editMode = false }) => {
           <Typography variant="h6" sx={{ mt: 2 }}>
             Loading editor...
           </Typography>
+        </Paper>
+      </Box>
+    );
+  }
+
+  if (fetchError && editMode) {
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          background: isDark
+            ? 'linear-gradient(135deg, #0a0e27 0%, #1a1d35 100%)'
+            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Paper
+          sx={{
+            p: 4,
+            background: isDark
+              ? 'rgba(30,30,30,0.9)'
+              : 'rgba(255,255,255,0.95)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: 4,
+            textAlign: 'center',
+          }}
+        >
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {fetchError.data?.message || 'Failed to load blog post'}
+          </Alert>
+          <Button 
+            variant="contained" 
+            onClick={handleRetry}
+            sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 600 }}
+          >
+            Retry
+          </Button>
         </Paper>
       </Box>
     );

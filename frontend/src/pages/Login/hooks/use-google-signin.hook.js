@@ -1,14 +1,16 @@
-import axios from 'axios';
-import React from 'react'
-import { urlConstants } from '../../../apis';
+import React from 'react';
 import { toast } from 'react-toastify';
 import { loginSuccess } from '../../../features/auth/authSlice';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { useGoogleLoginMutation } from '../../../apis/authApi';
 
 const useGoogleSignIn = (setLoading) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  // RTK Query hook
+  const [googleLogin, { isLoading: googleLoading, error: googleError }] = useGoogleLoginMutation();
 
   const handleGoogleSignIn = () => {
     const client = window.google.accounts.oauth2.initTokenClient({
@@ -29,21 +31,21 @@ const useGoogleSignIn = (setLoading) => {
           );
           const userInfo = await res.json();
 
-          const response = await axios.post(urlConstants.googleLogin, {
+          const result = await googleLogin({
             email: userInfo.email,
             name: userInfo.name,
-          });
+          }).unwrap();
 
-          const { user, token } = response.data;
+          const { user, token } = result;
 
           localStorage.setItem("user", JSON.stringify({ user }));
           localStorage.setItem("token", token);
           dispatch(loginSuccess({ user, token }));
           toast.success("Logged in with Google!");
           navigate("/");
-        } catch (err) {
-          console.error("Google login failed", err);
-          toast.error("Google sign-in failed!");
+        } catch (error) {
+          console.error("Google login failed", error);
+          toast.error(error.data?.message || "Google sign-in failed!");
           setLoading(false);
         }
       },
@@ -55,4 +57,4 @@ const useGoogleSignIn = (setLoading) => {
   return { handleGoogleSignIn };
 };
 
-export default useGoogleSignIn
+export default useGoogleSignIn;

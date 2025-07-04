@@ -1,3 +1,4 @@
+// Placeholder competition images using data URLs
 export const images = [
   "leetcode1.png",
   "leetcode2.png",

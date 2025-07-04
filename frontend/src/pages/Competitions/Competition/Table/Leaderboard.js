@@ -1,10 +1,25 @@
 import React from "react";
-import { Box, Typography, Chip, Avatar } from "@mui/material";
+import { 
+  Box, 
+  Typography, 
+  Chip, 
+  Avatar,
+  CircularProgress,
+  Alert,
+  Button,
+  Paper
+} from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { EmojiEvents as TrophyIcon } from "@mui/icons-material";
+import { 
+  EmojiEvents as TrophyIcon,
+  Refresh as RefreshIcon,
+  Leaderboard as LeaderboardIcon
+} from "@mui/icons-material";
+import { useTheme } from "@mui/material";
 
-const Leaderboard = ({ leaderboard }) => {
-  if (!leaderboard) return null;
+const Leaderboard = ({ leaderboard, loading, error, onRetry }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
 
   const columns = [
     {
@@ -81,6 +96,87 @@ const Leaderboard = ({ leaderboard }) => {
     totalScore: entry.totalScore,
   }));
 
+  if (loading) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        py: 8,
+        minHeight: 400
+      }}>
+        <CircularProgress size={40} thickness={4} />
+        <Typography variant="h6" sx={{ ml: 2 }}>
+          Loading leaderboard...
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        py: 8,
+        minHeight: 400
+      }}>
+        <Paper
+          sx={{
+            p: 4,
+            textAlign: 'center',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+            border: `1px solid ${isDark ? 'grey.800' : 'grey.200'}`,
+            borderRadius: 3,
+          }}
+        >
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error.data?.message || 'Failed to load leaderboard'}
+          </Alert>
+          <Button 
+            variant="contained" 
+            startIcon={<RefreshIcon />}
+            onClick={onRetry}
+            sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 600 }}
+          >
+            Retry
+          </Button>
+        </Paper>
+      </Box>
+    );
+  }
+
+  if (!leaderboard || leaderboard.length === 0) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        py: 8,
+        minHeight: 400
+      }}>
+        <Paper
+          sx={{
+            p: 4,
+            textAlign: 'center',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+            border: `1px solid ${isDark ? 'grey.800' : 'grey.200'}`,
+            borderRadius: 3,
+          }}
+        >
+          <LeaderboardIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 3 }} />
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            No leaderboard data yet
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Leaderboard will be populated once participants start solving problems.
+          </Typography>
+        </Paper>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ width: "100%", height: "auto" }}>
       <DataGrid
@@ -100,7 +196,7 @@ const Leaderboard = ({ leaderboard }) => {
             py: 1.5,
           },
           '& .MuiDataGrid-columnHeaders': {
-            backgroundColor: "#fafafa",
+            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : "#fafafa",
             borderBottom: "2px solid #f0f0f0",
             '& .MuiDataGrid-columnHeader': {
               padding: "14px 8px",
@@ -121,7 +217,7 @@ const Leaderboard = ({ leaderboard }) => {
               backgroundColor: 'rgba(205, 127, 50, 0.05)',
             },
             '&:hover': {
-              backgroundColor: "#f5faff",
+              backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : "#f5faff",
             },
           },
           '& .MuiDataGrid-footerContainer': {

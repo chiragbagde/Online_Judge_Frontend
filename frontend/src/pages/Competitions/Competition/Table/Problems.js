@@ -1,11 +1,23 @@
 import React from "react";
-import { Box, Typography, Chip, Tooltip, IconButton, useTheme } from "@mui/material";
+import { 
+  Box, 
+  Typography, 
+  Chip, 
+  Tooltip, 
+  IconButton, 
+  useTheme,
+  CircularProgress,
+  Alert,
+  Button,
+  Paper
+} from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
   Code as CodeIcon,
+  Refresh as RefreshIcon,
 } from "@mui/icons-material";
 
 const getDifficultyColor = (difficulty) => {
@@ -37,11 +49,11 @@ const getTopicColor = (topic) => {
   return colors[topic?.toLowerCase()] || "#666";
 };
 
-const Problems = ({ problems, verifySubmissions }) => {
+const Problems = ({ problems, verifySubmissions, loading, error, onRetry }) => {
   const navigate = useNavigate();
   const { id } = useParams();
   const theme = useTheme();
-  const isLightMode = theme.palette.mode === "light";
+  const isDark = theme.palette.mode === 'dark';
 
   const columns = [
     {
@@ -151,6 +163,87 @@ const Problems = ({ problems, verifySubmissions }) => {
     },
   ];
 
+  if (loading) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        py: 8,
+        minHeight: 400
+      }}>
+        <CircularProgress size={40} thickness={4} />
+        <Typography variant="h6" sx={{ ml: 2 }}>
+          Loading problems...
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        py: 8,
+        minHeight: 400
+      }}>
+        <Paper
+          sx={{
+            p: 4,
+            textAlign: 'center',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+            border: `1px solid ${isDark ? 'grey.800' : 'grey.200'}`,
+            borderRadius: 3,
+          }}
+        >
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error.data?.message || 'Failed to load problems'}
+          </Alert>
+          <Button 
+            variant="contained" 
+            startIcon={<RefreshIcon />}
+            onClick={onRetry}
+            sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 600 }}
+          >
+            Retry
+          </Button>
+        </Paper>
+      </Box>
+    );
+  }
+
+  if (!problems || problems.length === 0) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        py: 8,
+        minHeight: 400
+      }}>
+        <Paper
+          sx={{
+            p: 4,
+            textAlign: 'center',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+            border: `1px solid ${isDark ? 'grey.800' : 'grey.200'}`,
+            borderRadius: 3,
+          }}
+        >
+          <CodeIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 3 }} />
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            No problems available
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Problems will be available when the competition starts.
+          </Typography>
+        </Paper>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ 
       width: "100%", 
@@ -183,7 +276,7 @@ const Problems = ({ problems, verifySubmissions }) => {
           "& .MuiDataGrid-row": {
             cursor: "pointer",
             "&:hover": {
-              backgroundColor: isLightMode ? "grey.200" : "grey.800",
+              backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
               transition: "background-color 0.2s ease",
             },
           },

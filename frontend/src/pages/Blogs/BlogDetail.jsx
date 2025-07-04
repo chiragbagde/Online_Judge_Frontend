@@ -23,7 +23,8 @@ import {
   Stack,
   Fade,
   Breadcrumbs,
-  Link as MuiLink
+  Link as MuiLink,
+  Alert
 } from '@mui/material';
 import { 
   Favorite as LikeIcon, 
@@ -44,6 +45,7 @@ import {
   useToggleLikeMutation,
   useAddCommentMutation,
   useDeleteBlogMutation,
+  useIncrementBlogViewMutation,
 } from '../../apis/blogApi';
 import { formatDate, formatDateTime } from '../../utils/dateUtils';
 import { useAuth } from '../../hooks/useAuth';
@@ -59,16 +61,18 @@ const BlogDetail = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isDark = theme.palette.mode === 'dark';
   
+  // RTK Query hooks
   const {
     data: blogData,
     isLoading: loading,
     error,
+    refetch: refetchBlog
   } = useGetBlogBySlugQuery(slug);
-  const blog = blogData?.data;
 
   const [addComment, { isLoading: isAddingComment }] = useAddCommentMutation();
   const [toggleLike, { isLoading: isLiking }] = useToggleLikeMutation();
   const [deleteBlog] = useDeleteBlogMutation();
+  const [incrementView] = useIncrementBlogViewMutation();
 
   const [comment, setComment] = useState('');
   const [isLiked, setIsLiked] = useState(false);
@@ -77,22 +81,32 @@ const BlogDetail = () => {
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentsError, setCommentsError] = useState(null);
 
+  const blog = blogData?.data;
+
   useEffect(() => {
     if (blog) {
       setIsLiked(blog.likes?.includes(user?._id) || false);
+      // Increment view count when blog is loaded
+      if (blog._id) {
+        incrementView(blog._id);
+      }
     }
     if (error) {
       toast.error('Failed to load blog post');
       navigate('/blogs');
     }
-  }, [blog, user?._id, error, navigate]);
+  }, [blog, user?._id, error, navigate, incrementView]);
 
   const handleLike = async () => {
     if (!user) {
       toast.info('Please login to like this post');
       return;
     }
-    await toggleLike(blog._id).unwrap();
+    try {
+      await toggleLike(blog._id).unwrap();
+    } catch (error) {
+      toast.error('Failed to like/unlike post');
+    }
   };
 
   const handleCommentSubmit = async (e) => {
@@ -156,6 +170,10 @@ const BlogDetail = () => {
     navigate(`/blogs/edit/${blog._id}/${blog.slug}`, { state: { blog } });
   };
 
+  const handleRetry = () => {
+    refetchBlog();
+  };
+
   if (loading || !blog) {
     return (
       <Box 
@@ -180,6 +198,43 @@ const BlogDetail = () => {
         >
           <CircularProgress size={40} thickness={4} />
           <Typography variant="h6" sx={{ mt: 2 }}>Loading article...</Typography>
+        </Paper>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box 
+        sx={{
+          minHeight: '100vh',
+          background: isDark 
+            ? 'linear-gradient(135deg, #0a0e27 0%, #1a1d35 100%)'
+            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <Paper
+          sx={{
+            p: 4,
+            background: isDark ? 'rgba(30,30,30,0.9)' : 'rgba(255,255,255,0.95)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: 4,
+            textAlign: 'center'
+          }}
+        >
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error.data?.message || 'Failed to load blog post'}
+          </Alert>
+          <Button 
+            variant="contained" 
+            onClick={handleRetry}
+            sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 600 }}
+          >
+            Retry
+          </Button>
         </Paper>
       </Box>
     );
@@ -542,7 +597,7 @@ const BlogDetail = () => {
                     <Stack direction="row" spacing={1}>
                       <Button
                         onClick={handleLike}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || isLiking}
                         startIcon={isLiked ? <LikeIcon /> : <LikeBorderIcon />}
                         variant={isLiked ? "contained" : "outlined"}
                         color={isLiked ? "error" : "primary"}
@@ -623,7 +678,7 @@ const BlogDetail = () => {
                               placeholder="Share your thoughts..."
                               value={comment}
                               onChange={(e) => setComment(e.target.value)}
-                              disabled={isSubmitting}
+                              disabled={isAddingComment}
                               sx={{
                                 '& .MuiOutlinedInput-root': {
                                   borderRadius: 2,
@@ -634,15 +689,15 @@ const BlogDetail = () => {
                               <Button
                                 type="submit"
                                 variant="contained"
-                                disabled={!comment.trim() || isSubmitting}
-                                startIcon={<SendIcon />}
+                                disabled={!comment.trim() || isAddingComment}
+                                startIcon={isAddingComment ? <CircularProgress size={16} /> : <SendIcon />}
                                 sx={{
                                   borderRadius: 3,
                                   textTransform: 'none',
                                   fontWeight: 600,
                                 }}
                               >
-                                Post Comment
+                                {isAddingComment ? 'Posting...' : 'Post Comment'}
                               </Button>
                             </Stack>
                           </Box>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useNavigate } from 'react-router-dom';
@@ -46,28 +46,33 @@ const BlogsComponent = () => {
 
   const isDark = theme.palette.mode === "dark";
 
+  // RTK Query hooks
   const {
     data: blogsData,
     isLoading: blogsLoading,
     isFetching: blogsFetching,
+    error: blogsError
   } = useGetBlogsQuery({
     page,
     limit: 15,
     search: searchQuery,
     tag: activeFilter !== 'all' ? activeFilter : undefined,
   });
-  const blogs = blogsData?.data || [];
-  const hasMore = blogsData?.pagination?.page < blogsData?.pagination?.pages;
 
   const { 
     data: trendingArticles, 
-    isLoading: trendingLoading 
+    isLoading: trendingLoading,
+    error: trendingError
   } = useGetTrendingArticlesQuery({ limit: 5 });
 
   const { 
     data: popularTags, 
-    isLoading: tagsLoading 
+    isLoading: tagsLoading,
+    error: tagsError
   } = useGetPopularTagsQuery({ limit: 10 });
+
+  const blogs = blogsData?.data || [];
+  const hasMore = blogsData?.pagination?.page < blogsData?.pagination?.pages;
 
   const handleSearch = (e) => {
     const value = e.target.value;
@@ -90,6 +95,42 @@ const BlogsComponent = () => {
     setSearchInput('');
   };
 
+  const handleLoadMore = () => {
+    setPage(prev => prev + 1);
+  };
+
+  if (blogsError) {
+    return (
+      <Container maxWidth="xl" sx={{ py: 6 }}>
+        <Paper
+          sx={{
+            p: 4,
+            textAlign: 'center',
+            backgroundColor: isDark ? 'rgba(30,30,30,0.9)' : 'rgba(255,255,255,0.95)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: 4,
+            border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
+            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+          }}
+        >
+          <Typography variant="h5" color="error" gutterBottom>
+            Failed to load blogs
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+            {blogsError.data?.message || 'An error occurred while loading the blogs'}
+          </Typography>
+          <Button 
+            variant="contained" 
+            onClick={() => window.location.reload()}
+            sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 600 }}
+          >
+            Retry
+          </Button>
+        </Paper>
+      </Container>
+    );
+  }
+
   return (
     <Box
       sx={{
@@ -101,37 +142,39 @@ const BlogsComponent = () => {
     >
       <Container maxWidth="xl" sx={{ py: 6 }}>
         <Fade in timeout={800}>
-          <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Stack direction="row" alignItems="center" justifyContent="center" spacing={2} sx={{ mb: 3 }}>
-              <AutoAwesome sx={{ fontSize: 40, color: '#ffd700' }} />
+          <Box>
+            <Box sx={{ textAlign: 'center', mb: 8 }}>
+              <Stack direction="row" alignItems="center" justifyContent="center" spacing={2} sx={{ mb: 3 }}>
+                <AutoAwesome sx={{ fontSize: 40, color: '#ffd700' }} />
+                <Typography 
+                  variant="h2" 
+                  component="h1" 
+                  sx={{ 
+                    fontWeight: 900,
+                    background: 'linear-gradient(45deg, #fff 30%, #f0f0f0 90%)',
+                    backgroundClip: 'text',
+                    textFillColor: 'transparent',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    textShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                  }}
+                >
+                  DevHub Blog
+                </Typography>
+              </Stack>
               <Typography 
-                variant="h2" 
-                component="h1" 
+                variant="h6" 
                 sx={{ 
-                  fontWeight: 900,
-                  background: 'linear-gradient(45deg, #fff 30%, #f0f0f0 90%)',
-                  backgroundClip: 'text',
-                  textFillColor: 'transparent',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  textShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                  color: 'rgba(255,255,255,0.9)',
+                  fontWeight: 300,
+                  maxWidth: 600,
+                  mx: 'auto',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.3)',
                 }}
               >
-                DevHub Blog
+                Discover cutting-edge development insights, tutorials, and tech discussions from our community
               </Typography>
-            </Stack>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                color: 'rgba(255,255,255,0.9)',
-                fontWeight: 300,
-                maxWidth: 600,
-                mx: 'auto',
-                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-              }}
-            >
-              Discover cutting-edge development insights, tutorials, and tech discussions from our community
-            </Typography>
+            </Box>
           </Box>
         </Fade>
 
@@ -266,8 +309,27 @@ const BlogsComponent = () => {
                       No articles found
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Try adjusting your search or explore different tags
+                      {searchQuery ? 'Try adjusting your search or explore different tags' : 'Check back later for new articles!'}
                     </Typography>
+                    {searchQuery && (
+                      <Button
+                        variant="outlined"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setSearchInput('');
+                          setActiveFilter('all');
+                          setPage(1);
+                        }}
+                        sx={{
+                          mt: 2,
+                          borderRadius: 3,
+                          textTransform: 'none',
+                          fontWeight: 600,
+                        }}
+                      >
+                        Clear Search
+                      </Button>
+                    )}
                   </Box>
                 )}
 
@@ -275,7 +337,7 @@ const BlogsComponent = () => {
                   <Box sx={{ textAlign: 'center', mt: 4 }}>
                     <Button 
                       variant="outlined" 
-                      onClick={() => setPage(p => p + 1)}
+                      onClick={handleLoadMore}
                       sx={{
                         py: 2,
                         px: 4,
@@ -295,6 +357,15 @@ const BlogsComponent = () => {
                     </Button>
                   </Box>
                 )}
+
+                {blogsFetching && page > 1 && (
+                  <Box sx={{ textAlign: 'center', mt: 4 }}>
+                    <CircularProgress size={24} />
+                    <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                      Loading more articles...
+                    </Typography>
+                  </Box>
+                )}
               </Stack>
             </Paper>
           </Grid>
@@ -305,6 +376,7 @@ const BlogsComponent = () => {
               trending={trendingArticles?.data || []}
               tags={popularTags?.data || []}
               onTagClick={handleTagClick}
+              errors={{ trending: trendingError, tags: tagsError }}
             />
           </Grid>
         </Grid>
