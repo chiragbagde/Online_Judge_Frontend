@@ -49,19 +49,22 @@ import {
   Edit,
   Delete,
 } from "@mui/icons-material";
-import axios from "axios";
-import { getConfig } from "../../utils/getConfig";
-import { PROBLEMS_PER_PAGE } from "../../utils/constants";
-import { urlConstants } from "../../apis";
-import Loading from "../Loader/Loader";
 import { Link, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import LeftSidebar from "./components/LeftSidebar";
 import ProblemsTable from "./components/ProblemsTable";
 import { EditListDialog, DeleteListDialog } from "./components/ListPopups";
-import useProblemsApi from "./hooks/use-problems-api";
+import { 
+  useGetProblemsQuery, 
+  useGetTopicCountsQuery, 
+  useGetMyListsQuery, 
+  useCreateListMutation, 
+  useUpdateListMutation, 
+  useDeleteListMutation 
+} from '../../apis/problemsApi';
 import EmailForm from "./components/EmailMe";
+import Loading from "../Loader/Loader";
 
 const difficultyColors = {
   easy: "#4CAF50",
@@ -75,12 +78,10 @@ const sidebarLists = [
   { icon: <Forum />, label: "Discuss" },
 ];
 
+const PROBLEMS_PER_PAGE = 10;
 
 const Problems = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [problems, setProblems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [topicCounts, setTopicCounts] = useState([]);
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
     pageSize: PROBLEMS_PER_PAGE,
@@ -106,46 +107,22 @@ const Problems = () => {
   const borderColor = theme.palette.border.secondary;
   const hoverColor = isLightMode ? "#f0f7ff" : "#333";
 
-  const {
-    fetchProblems,
-    fetchTopicCounts,
-    fetchMyLists
-  } = useProblemsApi();
+  // RTK Query hooks
+  const { data: problemsData, isLoading: problemsLoading, error: problemsError } = useGetProblemsQuery();
+  const { data: topicCountsData, isLoading: topicCountsLoading, error: topicCountsError } = useGetTopicCountsQuery();
+  const { data: myListsData, isLoading: myListsLoading, error: myListsError, refetch: refetchMyLists } = useGetMyListsQuery(user?.id, { skip: !user?.id });
+  const [createList] = useCreateListMutation();
+  const [updateList] = useUpdateListMutation();
+  const [deleteList] = useDeleteListMutation();
 
   useEffect(() => {
-    const getProblems = async () => {
-      try {
-        const data = await fetchProblems();
-        setProblems(data.problems);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (myListsData && myListsData.lists) {
+      setMyLists(myListsData.lists);
+    }
+  }, [myListsData]);
 
-    const getTopicCounts = async () => {
-      try {
-        const data = await fetchTopicCounts();
-        setTopicCounts(data.topicCounts);
-      } catch (e) {
-        console.error(e);
-      }
-    };
-
-    const getMyLists = async () => {
-      try {
-        const data = await fetchMyLists(user?.id);
-        setMyLists(data.lists);
-      } catch(e){
-        console.error(e);
-      }
-    };
-
-    getProblems();
-    getTopicCounts();
-    getMyLists();
-  }, []);
+  const problems = problemsData?.problems || [];
+  const topicCounts = topicCountsData?.topicCounts || [];
 
   const setSelectedTopic = (topic) => {
     if (topic === "All Topics" || !topic) {
@@ -180,16 +157,12 @@ const Problems = () => {
 
   const handleCreateList = async () => {
     try {
-      const { data } = await axios.post(
-        urlConstants.createList,
-        { 
-          name: newListName, 
-          description: listDescription,
-          user_id: user?.id,
-          problems: [] 
-        },
-        getConfig()
-      );
+      const { data } = await createList({ 
+        name: newListName, 
+        description: listDescription,
+        user_id: user?.id,
+        problems: [] 
+      });
       setMyLists(prev => [...prev, data.list]);
       setOpenNewListDialog(false);
       setNewListName("");
@@ -205,16 +178,12 @@ const Problems = () => {
     if (!editingList) return;
     
     try {
-      const { data } = await axios.post(
-        urlConstants.updateList,
-        {
-          id: editingList._id,
-          name: newListName,
-          description: listDescription,
-          problems: editingList.problems
-        },
-        getConfig()
-      );
+      const { data } = await updateList({
+        id: editingList._id,
+        name: newListName,
+        description: listDescription,
+        problems: editingList.problems
+      });
       
       setMyLists(prev => 
         prev.map(list => 
@@ -240,11 +209,7 @@ const Problems = () => {
     }
 
     try {
-        await axios.post(
-            urlConstants.deleteList,
-            { id: listToDelete._id },
-            getConfig()
-        );
+        await deleteList({ id: listToDelete._id });
 
         setMyLists(prev => prev.filter(list => list._id !== listToDelete._id));
         setOpenDeleteDialog(false);
@@ -280,16 +245,12 @@ const Problems = () => {
       const updatedProblems = [...new Set([...currentList.problems, ...selectedProblems])];
 
       // Update the list with new problems
-      const { data } = await axios.post(
-        urlConstants.updateList,
-        {
-          id: listId,
-          name: currentList.name,
-          description: currentList.description,
-          problems: updatedProblems
-        },
-        getConfig()
-      );
+      const { data } = await updateList({
+        id: listId,
+        name: currentList.name,
+        description: currentList.description,
+        problems: updatedProblems
+      });
 
       // Update the lists in state
       setMyLists(prev => 
@@ -308,7 +269,8 @@ const Problems = () => {
   };
 
   // --- UI ---
-  if (loading) return <Loading />;
+  if (problemsLoading || topicCountsLoading || myListsLoading) return <Loading />;
+  if (problemsError || topicCountsError || myListsError) return <Box p={4}><Typography color="error">Failed to load problems data.</Typography></Box>;
 
   const activeAvatarBg = '#1976d2';
 

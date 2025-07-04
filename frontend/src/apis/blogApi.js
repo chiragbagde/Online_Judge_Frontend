@@ -234,6 +234,22 @@ export const blogApi = api.injectEndpoints({
         body: { reason },
       }),
     }),
+
+    // Image Management
+    uploadBlogImage: builder.mutation({
+      query: (formData) => ({
+        url: 'blogs/image-upload',
+        method: 'POST',
+        body: formData,
+        formData: true, // Important: Let RTK Query know this is form data
+      }),
+    }),
+    deleteBlogImage: builder.mutation({
+      query: (fileName) => ({
+        url: `blogs/image/${fileName}`,
+        method: 'DELETE',
+      }),
+    }),
   }),
 });
 
@@ -248,6 +264,17 @@ export const uploadBlogImage = async (file, token, blogId) => {
   const response = await axios.post('http://localhost:5000/api/blogs/image-upload', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+
+  return response.data;
+};
+
+// Utility function for image deletion
+export const deleteBlogImage = async (fileName, token) => {
+  const response = await axios.delete(`http://localhost:5000/api/blogs/image/${fileName}`, {
+    headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
     },
   });
@@ -298,6 +325,10 @@ export const {
   useModerateCommentMutation,
   useDeleteCommentMutation,
   useReportBlogMutation,
+
+  // Image Management
+  useUploadBlogImageMutation,
+  useDeleteBlogImageMutation,
 } = blogApi;
 
 

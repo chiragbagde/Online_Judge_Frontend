@@ -178,7 +178,7 @@ const BlogsComponent = () => {
           </Box>
         </Fade>
 
-        <Grid container spacing={4}>
+        <Grid container spacing={4} sx={{ justifyContent: 'center' }}>
           <Grid item xs={12} md={8}>
             <Paper
               elevation={0}
@@ -189,6 +189,7 @@ const BlogsComponent = () => {
                 borderRadius: 4,
                 border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
                 boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+
               }}
             >
               <Stack spacing={4}>
@@ -294,7 +295,7 @@ const BlogsComponent = () => {
                   <Grid container spacing={3}>
                     {blogs.map((blog, index) => (
                       <Grid item xs={12} lg={6} key={blog._id}>
-                        <Fade in timeout={600 + index * 100}>
+                        <Fade in timeout={600 + index * 100} unmountOnExit>
                           <Box>
                             <BlogCard blog={blog} />
                           </Box>

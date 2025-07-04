@@ -9,7 +9,7 @@ import {
   Avatar
 } from '@mui/material';
 import { CloudUpload as CloudUploadIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { uploadBlogImage } from '../../apis/blogApi';
+import { useUploadBlogImageMutation, useDeleteBlogImageMutation } from '../../apis/blogApi';
 import { toast } from 'react-toastify';
 import { useSelector } from 'react-redux';
 
@@ -29,9 +29,11 @@ const ImageUploader = ({
   required = false
 }) => {
   const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = React.useRef(null);
   const { user } = useSelector((state) => state.auth);
+
+  const [uploadImage, { isLoading: isUploading }] = useUploadBlogImageMutation();
+  const [deleteImage, { isLoading: isDeleting }] = useDeleteBlogImageMutation();
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -77,27 +79,41 @@ const ImageUploader = ({
       return;
     }
 
+    const formData = new FormData();
+    formData.append('file', file);
+    if (blogId) {
+      formData.append('blogId', blogId);
+    }
+
     try {
-      setIsUploading(true);
-      const response = await uploadBlogImage(file, user.token, blogId);
-      
-      if (response.success) {
-        onChange(response.url);
-        toast.success('Image uploaded successfully');
-      } else {
-        toast.error(response.message || 'Failed to upload image');
-      }
+      const response = await uploadImage(formData).unwrap();
+      onChange(response.url);
+      toast.success('Image uploaded successfully');
     } catch (error) {
       console.error('Error uploading image:', error);
-      toast.error('Failed to upload image');
-    } finally {
-      setIsUploading(false);
+      toast.error(error.data?.message || 'Failed to upload image');
     }
   };
 
-  const handleRemoveImage = (e) => {
+  const handleRemoveImage = async (e) => {
     e.stopPropagation();
-    onChange('');
+    if (!value) return;
+
+    const confirmed = window.confirm(
+      'Are you sure you want to permanently delete this image from storage? This action cannot be undone.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const fileName = value.split('/').pop();
+      await deleteImage(fileName).unwrap();
+      onChange('');
+      toast.success('Image deleted successfully.');
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast.error(error.data?.message || 'Failed to delete image.');
+    }
   };
 
   const renderPreview = () => {
@@ -119,6 +135,7 @@ const ImageUploader = ({
             <IconButton
               size="small"
               onClick={handleRemoveImage}
+              disabled={isDeleting}
               sx={{
                 position: 'absolute',
                 top: 0,
@@ -129,7 +146,7 @@ const ImageUploader = ({
                 },
               }}
             >
-              <DeleteIcon fontSize="small" color="error" />
+              {isDeleting ? <CircularProgress size={20} /> : <DeleteIcon fontSize="small" color="error" />}
             </IconButton>
           )}
         </Box>
@@ -164,6 +181,7 @@ const ImageUploader = ({
           <IconButton
             size="small"
             onClick={handleRemoveImage}
+            disabled={isDeleting}
             sx={{
               position: 'absolute',
               top: 8,
@@ -174,7 +192,7 @@ const ImageUploader = ({
               },
             }}
           >
-            <DeleteIcon fontSize="small" color="error" />
+            {isDeleting ? <CircularProgress size={16} /> : <DeleteIcon fontSize="small" color="error" />}
           </IconButton>
         )}
       </Box>

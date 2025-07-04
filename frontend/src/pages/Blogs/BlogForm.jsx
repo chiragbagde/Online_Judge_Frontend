@@ -30,6 +30,7 @@ import {
   Add as AddIcon,
   Cancel as CancelIcon,
   Edit as EditIcon,
+  Delete as DeleteIcon,
   Code as CodeIcon,
   Image as ImageIcon,
   Home as HomeIcon,
@@ -40,8 +41,10 @@ import {
 import {
   useCreateBlogMutation,
   useUpdateBlogMutation,
+  useDeleteBlogMutation,
   useGetBlogByIdQuery,
-  uploadBlogImage,
+  useUploadBlogImageMutation,
+  useDeleteBlogImageMutation,
 } from '../../apis/blogApi';
 import { toast } from 'react-toastify';
 import { useSelector } from 'react-redux';
@@ -59,6 +62,9 @@ const BlogForm = ({ editMode = false }) => {
   // RTK Query hooks
   const [createBlog, { isLoading: isCreating }] = useCreateBlogMutation();
   const [updateBlog, { isLoading: isUpdating }] = useUpdateBlogMutation();
+  const [deleteBlog, { isLoading: isDeleting }] = useDeleteBlogMutation();
+  const [uploadImage, { isLoading: isUploadingImage }] = useUploadBlogImageMutation();
+  const [deleteImage, { isLoading: isDeletingImage }] = useDeleteBlogImageMutation();
   const { 
     data: blogResponse, 
     isLoading: isFetching, 
@@ -66,6 +72,7 @@ const BlogForm = ({ editMode = false }) => {
     refetch: refetchBlog
   } = useGetBlogByIdQuery(id, {
     skip: !id,
+    refetchOnMountOrArgChange: true,
   });
 
   const blogData = blogResponse?.data;
@@ -77,11 +84,11 @@ const BlogForm = ({ editMode = false }) => {
   const [tagInput, setTagInput] = useState('');
   const [isPublished, setIsPublished] = useState(false);
   const [errors, setErrors] = useState({});
-  const [imageUploading, setImageUploading] = useState(false);
   const [lastUploadedImageUrl, setLastUploadedImageUrl] = useState('');
 
   const isLoading = isFetching;
   const isSaving = isCreating || isUpdating;
+  const isProcessing = isSaving || isDeleting || isUploadingImage || isDeletingImage;
 
   useEffect(() => {
     if (editMode && blogData) {
@@ -105,28 +112,51 @@ const BlogForm = ({ editMode = false }) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    setImageUploading(true);
     setLastUploadedImageUrl('');
+    const formData = new FormData();
+    formData.append('file', file);
+    if (editMode && id) {
+      formData.append('blogId', id);
+    }
 
     try {
-        const response = await uploadBlogImage(file, user.token, editMode ? id : null);
-        if (response.success) {
-            setLastUploadedImageUrl(response.url);
-            if (!editMode) {
-                setFeaturedImage(response.url);
-            }
-            toast.success('Image uploaded! URL copied to clipboard.');
-            navigator.clipboard.writeText(`![Image](${response.url})`);
-        } else {
-            toast.error(response.message || 'Image upload failed.');
-        }
+      const response = await uploadImage(formData).unwrap();
+      setLastUploadedImageUrl(response.url);
+      if (!editMode) {
+          setFeaturedImage(response.url);
+      }
+      toast.success('Image uploaded! URL copied to clipboard.');
+      navigator.clipboard.writeText(`![Image](${response.url})`);
     } catch (error) {
-        toast.error('An error occurred during upload.');
-        console.error(error);
+      toast.error(error.data?.message || 'Image upload failed.');
+      console.error(error);
     } finally {
-        setImageUploading(false);
-        // Reset file input
-        event.target.value = null;
+      // Reset file input
+      event.target.value = null;
+    }
+  };
+
+  const handleDeleteContentImage = async () => {
+    if (!lastUploadedImageUrl) return;
+
+    const confirmed = window.confirm(
+      'Are you sure you want to permanently delete this image from storage? This action cannot be undone.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const fileName = lastUploadedImageUrl.split('/').pop();
+      await deleteImage(fileName).unwrap();
+      
+      const markdownToDelete = `![Image](${lastUploadedImageUrl})`;
+      setContent((currentContent) => currentContent.replace(markdownToDelete, ''));
+
+      setLastUploadedImageUrl('');
+      toast.success('Image deleted successfully and removed from content.');
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast.error(error.data?.message || 'Failed to delete image.');
     }
   };
 
@@ -204,6 +234,26 @@ const BlogForm = ({ editMode = false }) => {
 
   const handleRetry = () => {
     refetchBlog();
+  };
+
+  const handleDelete = async () => {
+    if (!editMode || !id) return;
+
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this blog post? This action cannot be undone and will also delete all associated images.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await deleteBlog(id).unwrap();
+      toast.success('Blog post deleted successfully');
+      navigate('/blogs');
+    } catch (error) {
+      console.error('Error deleting blog:', error);
+      const errorMessage = error.data?.message || 'Failed to delete blog post';
+      toast.error(errorMessage);
+    }
   };
 
   if (isLoading) {
@@ -359,35 +409,67 @@ const BlogForm = ({ editMode = false }) => {
                 </Button>
 
                 {editMode && (
-                  <Button
-                    type="submit"
-                    form="blog-form"
-                    variant="contained"
-                    size="large"
-                    startIcon={
-                      isSaving ? (
-                        <CircularProgress size={20} color="inherit" />
-                      ) : (
-                        <SaveIcon />
-                      )
-                    }
-                    disabled={isSaving}
-                    sx={{
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      px: 4,
-                      background:
-                        'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
-                      boxShadow: '0 8px 20px rgba(102, 126, 234, 0.3)',
-                      '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 12px 25px rgba(102, 126, 234, 0.4)',
-                      },
-                      transition: 'all 0.3s ease',
-                    }}
-                  >
-                    {isSaving ? 'Updating...' : 'Update Post'}
-                  </Button>
+                  <Stack direction="row" spacing={2}>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      size="large"
+                      startIcon={
+                        isDeleting ? (
+                          <CircularProgress size={20} color="inherit" />
+                        ) : (
+                          <DeleteIcon />
+                        )
+                      }
+                      disabled={isProcessing}
+                      onClick={handleDelete}
+                      sx={{
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        px: 4,
+                        borderColor: 'error.main',
+                        color: 'error.main',
+                        '&:hover': {
+                          borderColor: 'error.dark',
+                          backgroundColor: 'error.main',
+                          color: 'white',
+                          transform: 'translateY(-2px)',
+                        },
+                        transition: 'all 0.3s ease',
+                      }}
+                    >
+                      {isDeleting ? 'Deleting...' : 'Delete Post'}
+                    </Button>
+                    <Button
+                      type="submit"
+                      form="blog-form"
+                      variant="contained"
+                      size="large"
+                      startIcon={
+                        isSaving ? (
+                          <CircularProgress size={20} color="inherit" />
+                        ) : (
+                          <SaveIcon />
+                        )
+                      }
+                      disabled={isProcessing}
+                      sx={{
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        px: 4,
+                        background:
+                          'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
+                        boxShadow: '0 8px 20px rgba(102, 126, 234, 0.3)',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 12px 25px rgba(102, 126, 234, 0.4)',
+                        },
+                        transition: 'all 0.3s ease',
+                      }}
+                    >
+                      {isSaving ? 'Updating...' : 'Update Post'}
+                    </Button>
+                  </Stack>
                 )}
               </Stack>
             </Stack>
@@ -502,8 +584,8 @@ const BlogForm = ({ editMode = false }) => {
                                     component="label"
                                     variant="outlined"
                                     size="small"
-                                    startIcon={imageUploading ? <CircularProgress size={16} /> : <ImageIcon />}
-                                    disabled={imageUploading}
+                                    startIcon={isUploadingImage ? <CircularProgress size={16} /> : <ImageIcon />}
+                                    disabled={isProcessing}
                                 >
                                     Upload Content Image
                                     <input type="file" hidden accept="image/*" onChange={handleImageUpload} />
@@ -516,7 +598,7 @@ const BlogForm = ({ editMode = false }) => {
                                             navigator.clipboard.writeText(`![Image](${lastUploadedImageUrl})`);
                                             toast.info('Markdown copied to clipboard!');
                                         }}
-                                        onDelete={() => setLastUploadedImageUrl('')}
+                                        onDelete={handleDeleteContentImage}
                                      />
                                 )}
                                </Stack>
@@ -729,6 +811,71 @@ const BlogForm = ({ editMode = false }) => {
                                 </Typography>
                               </CardContent>
                             </Card>
+
+                            {editMode && (
+                              <Card
+                                sx={{
+                                  backgroundColor: isDark
+                                    ? 'rgba(255,255,255,0.02)'
+                                    : 'rgba(0,0,0,0.02)',
+                                  border: `1px solid ${
+                                    isDark ? 'grey.800' : 'grey.200'
+                                  }`,
+                                  borderRadius: 3,
+                                }}
+                              >
+                                <CardContent sx={{ p: 3 }}>
+                                  <Typography
+                                    variant="h6"
+                                    gutterBottom
+                                    sx={{ 
+                                      fontWeight: 600,
+                                      color: 'error.main',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 1
+                                    }}
+                                  >
+                                    <DeleteIcon color="error" />
+                                    Danger Zone
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                    sx={{ mb: 2 }}
+                                  >
+                                    Once you delete a blog post, there is no going back. Please be certain.
+                                  </Typography>
+                                  <Button
+                                    variant="outlined"
+                                    color="error"
+                                    fullWidth
+                                    startIcon={
+                                      isDeleting ? (
+                                        <CircularProgress size={16} color="inherit" />
+                                      ) : (
+                                        <DeleteIcon />
+                                      )
+                                    }
+                                    disabled={isProcessing}
+                                    onClick={handleDelete}
+                                    sx={{
+                                      textTransform: 'none',
+                                      fontWeight: 600,
+                                      borderColor: 'error.main',
+                                      color: 'error.main',
+                                      '&:hover': {
+                                        borderColor: 'error.dark',
+                                        backgroundColor: 'error.main',
+                                        color: 'white',
+                                      },
+                                    }}
+                                  >
+                                    {isDeleting ? 'Deleting...' : 'Delete This Post'}
+                                  </Button>
+                                </CardContent>
+                              </Card>
+                            )}
                           </Stack>
                         </Grid>
                       </Grid>
@@ -745,7 +892,7 @@ const BlogForm = ({ editMode = false }) => {
                           <Button
                             variant="outlined"
                             onClick={() => navigate('/blogs')}
-                            disabled={isSaving}
+                            disabled={isProcessing}
                             startIcon={<CancelIcon />}
                             sx={{
                               borderRadius: 3,
@@ -768,7 +915,7 @@ const BlogForm = ({ editMode = false }) => {
                                 <SaveIcon />
                               )
                             }
-                            disabled={isSaving}
+                            disabled={isProcessing}
                             sx={{
                               borderRadius: 3,
                               textTransform: 'none',

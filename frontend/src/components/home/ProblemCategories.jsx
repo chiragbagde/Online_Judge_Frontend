@@ -22,27 +22,18 @@ import {
   ArrowForward
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
-import useProblemsApi from '../../pages/Problems/hooks/use-problems-api';
+import { useGetTopicCountsQuery } from '../../apis/problemsApi';
 import { categoryConfig } from './data/problem-categories';
 
 const ProblemCategories = () => {
   const theme = useTheme();
-  const [topicCounts, setTopicCounts] = useState([]);
-  const { fetchTopicCounts } = useProblemsApi();
-
-  useEffect(() => {
-    const getTopicCounts = async () => {
-      try {
-        const data = await fetchTopicCounts();
-        setTopicCounts(data.topicCounts);
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    getTopicCounts();
-  }, []);
+  const { data, isLoading, error } = useGetTopicCountsQuery();
+  const topicCounts = data?.topicCounts || [];
 
   const sortedTopics = [...topicCounts].sort((a, b) => b.count - a.count);
+
+  if (isLoading) return <Box py={10}><Typography align="center">Loading...</Typography></Box>;
+  if (error) return <Box py={10}><Typography color="error" align="center">Failed to load categories.</Typography></Box>;
 
   return (
     <Box sx={{ py: 10, bgcolor: 'background.paper' }}>
