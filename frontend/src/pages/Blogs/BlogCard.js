@@ -66,7 +66,7 @@ const BlogCard = ({ blog }) => {
           },
           '& .blog-chip': {
             transform: 'scale(1.05)',
-          }
+          },
         }
       }}
       onClick={() => handleBlogClick(blog.slug)}

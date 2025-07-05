@@ -52,12 +52,13 @@ import { useAuth } from '../../hooks/useAuth';
 import { toast } from 'react-toastify';
 import { confirmAlert } from 'react-confirm-alert';
 import 'react-confirm-alert/src/react-confirm-alert.css';
+import { useSelector } from 'react-redux';
 
 const BlogDetail = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const theme = useTheme();
+  const { user } = useSelector((state) => state.auth);
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isDark = theme.palette.mode === 'dark';
   
@@ -138,7 +139,7 @@ const BlogDetail = () => {
           label: 'Yes',
           onClick: async () => {
             try {
-              await deleteBlog(blog._id).unwrap();
+              await deleteBlog({ id: blog._id, u_id: user.id }).unwrap();
               toast.success('Blog post deleted successfully');
               navigate('/blogs');
             } catch (error) {

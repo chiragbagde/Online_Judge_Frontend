@@ -55,16 +55,17 @@ export const blogApi = api.injectEndpoints({
     }),
     updateBlog: builder.mutation({
       query: (updates) => ({
-        url: 'blogs/update',
+        url: 'blogs/id',
         method: 'POST',
         body: updates,
       }),
       invalidatesTags: (result, error, { id }) => [{ type: 'Blog', id }],
     }),
     deleteBlog: builder.mutation({
-      query: (id) => ({
+      query: ({ id, u_id }) => ({
         url: `blogs/${id}`,
         method: 'DELETE',
+        body: { u_id },
       }),
       invalidatesTags: [{ type: 'Blog', id: 'LIST' }],
     }),

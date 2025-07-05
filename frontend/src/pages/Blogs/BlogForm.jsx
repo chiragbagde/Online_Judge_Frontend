@@ -212,6 +212,7 @@ const BlogForm = ({ editMode = false }) => {
       tags,
       isPublished,
       id: editMode ? id : user.id,
+      u_id: user.id,
     };
 
     try {
@@ -246,7 +247,7 @@ const BlogForm = ({ editMode = false }) => {
     if (!confirmed) return;
 
     try {
-      await deleteBlog(id).unwrap();
+      await deleteBlog({ id, u_id: user.id }).unwrap();
       toast.success('Blog post deleted successfully');
       navigate('/blogs');
     } catch (error) {

@@ -54,7 +54,7 @@ const BlogsComponent = () => {
     error: blogsError
   } = useGetBlogsQuery({
     page,
-    limit: 15,
+    limit: 10,
     search: searchQuery,
     tag: activeFilter !== 'all' ? activeFilter : undefined,
   });
@@ -72,7 +72,8 @@ const BlogsComponent = () => {
   } = useGetPopularTagsQuery({ limit: 10 });
 
   const blogs = blogsData?.data || [];
-  const hasMore = blogsData?.pagination?.page < blogsData?.pagination?.pages;
+  const pagination = blogsData?.pagination;
+  const hasMore = pagination ? pagination.page < pagination.pages : false;
 
   const handleSearch = (e) => {
     const value = e.target.value;
@@ -292,17 +293,24 @@ const BlogsComponent = () => {
                     </Typography>
                   </Box>
                 ) : blogs.length > 0 ? (
-                  <Grid container spacing={3}>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' }}>
                     {blogs.map((blog, index) => (
-                      <Grid item xs={12} lg={6} key={blog._id}>
-                        <Fade in timeout={600 + index * 100} unmountOnExit>
+                      <Box 
+                        key={blog._id} 
+                        sx={{ 
+                          width: { xs: '100%', lg: 'calc(50% - 12px)' },
+                          maxWidth: '600px',
+                          minWidth: { md: '300px' }
+                        }}
+                      >
+                        <Fade spacing={0} in timeout={600 + index * 100} unmountOnExit>
                           <Box>
                             <BlogCard blog={blog} />
                           </Box>
                         </Fade>
-                      </Grid>
+                      </Box>
                     ))}
-                  </Grid>
+                  </Box>
                 ) : (
                   <Box sx={{ textAlign: 'center', py: 8 }}>
                     <Article sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
